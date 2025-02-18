@@ -1,0 +1,96 @@
+package org.darkan.core.net
+
+import io.ktor.utils.io.*
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
+import org.darkan.core.EnvVars
+import org.darkan.core.Logger.logInfo
+import org.darkan.core.Logger.logTrace
+import org.darkan.core.Logger.logWarn
+import world.gregs.voidps.buffer.*
+import world.gregs.voidps.cache.file.FileProvider
+
+class JS5Server(val provider: FileProvider) {
+    val limiter = MultilogLimiter()
+    val js5Keys = EnvVars.js5Keys.split(",").map { it.trim().toInt() }.toIntArray()
+
+    suspend fun init(input: ByteReadChannel, output: ByteWriteChannel, ip: String) {
+        if (!limiter.add(ip)) {
+            output.finish(ResponseOpcode.LOGIN_LIMIT_EXCEEDED)
+            return
+        }
+        try {
+            val size = input.readByte().toInt() //unused because suspend OP
+            if (input.readInt() != EnvVars.patchVersion || input.readInt() != EnvVars.majorVersion || input.readInt() != EnvVars.minorVersion) {
+                logTrace("Invalid client version")
+                output.writeByte(ResponseOpcode.GAME_UPDATE)
+                output.flushAndClose()
+                return
+            }
+            val token = input.readString()
+            if (token != EnvVars.js5ServerToken) {
+                logTrace("Invalid JS5 server token $token")
+                output.writeByte(ResponseOpcode.BAD_SESSION_ID)
+                output.flushAndClose()
+                return
+            }
+            output.writeByte(ResponseOpcode.JS5_SYNC)
+            for (key in js5Keys)
+                output.writeInt(key)
+            output.flush()
+
+            val opcode = input.readByte().toInt()
+            if (opcode != RequestOpcode.ACKNOWLEDGE) {
+                logInfo("Incorrect acknowledgement: $opcode")
+                output.writeByte(ResponseOpcode.LOGIN_SERVER_REJECTED_SESSION)
+                output.flushAndClose()
+                return
+            }
+
+            val id = input.readMedium()
+            if (id != 3) {
+                logInfo("Incorrect session id: $id")
+                output.writeByte(ResponseOpcode.BAD_SESSION_ID)
+                output.flushAndClose()
+                return
+            }
+            val endAcknowledgement = input.readUShort()
+            if (endAcknowledgement != 0) {
+                logInfo("Incorrect end of acknowledgement signifier: $id")
+                output.writeByte(ResponseOpcode.BAD_SESSION_ID)
+                output.flushAndClose()
+                return
+            }
+            coroutineScope {
+                while (isActive) {
+                    val opcode = input.readByte().toInt()
+//                    logTrace("Handling JS5 opcode: $opcode")
+                    when (opcode) {
+                        RequestOpcode.STATUS_LOGGED_OUT, RequestOpcode.STATUS_LOGGED_IN -> verify(input, output, 0L)
+                        RequestOpcode.JS5_FILE_HIGH_PRIORITY, RequestOpcode.JS5_FILE ->
+                            provider.serve(output, input.read40BitULong(), opcode == RequestOpcode.JS5_FILE)
+
+                        RequestOpcode.ENCRYPTION_KEY_UPDATE -> input.readUByte()
+                        else -> {
+                            logWarn("Invalid JS5 opcode: $opcode")
+                            input.cancel()
+                            output.flushAndClose()
+                        }
+                    }
+                }
+            }
+        } finally {
+            limiter.remove(ip)
+        }
+    }
+
+    suspend fun verify(input: ByteReadChannel, output: ByteWriteChannel, expected: Long): Boolean {
+        val id = input.read40BitULong()
+        if (id != expected) {
+            output.writeByte(ResponseOpcode.BAD_SESSION_ID)
+            output.flushAndClose()
+            return false
+        }
+        return true
+    }
+}
