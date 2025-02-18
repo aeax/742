@@ -4,6 +4,9 @@ package world.gregs.voidps.buffer
 
 import io.ktor.utils.io.*
 import io.ktor.utils.io.bits.*
+import io.ktor.utils.io.core.ByteReadPacket
+import io.ktor.utils.io.core.remaining
+import kotlinx.io.Source
 import world.gregs.voidps.buffer.write.BufferWriter
 import kotlin.random.Random
 
@@ -163,6 +166,19 @@ suspend fun ByteReadChannel.readString(): String {
         val byte = readByte()
         if (byte.toInt() == 0) break
         sb.append(byte.toInt().toChar())
+    }
+    return sb.toString()
+}
+
+fun Source.readString(): String {
+    val sb = StringBuilder()
+    var b: Int
+    while (remaining > 0) {
+        b = readByte().toInt()
+        if (b == 0) {
+            break
+        }
+        sb.append(b.toChar())
     }
     return sb.toString()
 }

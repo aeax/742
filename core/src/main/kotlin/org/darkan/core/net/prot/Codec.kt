@@ -61,12 +61,13 @@ class Codec {
     }
 
     companion object {
-        private val codecs = mutableMapOf<Long, Codec>()
+        private val codecs = mutableMapOf<Int, Codec>()
 
-        fun register(revision: Int, subRevision: Int, init: Codec.() -> Unit): Codec {
+        fun register(revision: Int, init: Codec.() -> Unit): Codec {
             val codec = Codec().apply(init)
-            val key = (revision.toLong() shl 32) or subRevision.toLong()
-            return codecs.getOrPut(key) { codec }
+            return codecs.getOrPut(revision) { codec }
         }
+
+        fun get(revision: Int) = codecs[revision]
     }
 }

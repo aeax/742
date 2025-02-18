@@ -14,7 +14,7 @@ import world.gregs.voidps.buffer.writeShort
 import java.io.ByteArrayOutputStream
 import java.io.ObjectOutputStream
 
-fun register727() = Codec.register(727, 1) {
+fun register727() = Codec.register(727) {
     /*
      * Client protocol
      */
