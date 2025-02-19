@@ -51,17 +51,14 @@ fun register727() = Codec.register(727) {
     serverProt<ReflectionRequest>(opcode = 98, size = ProtSize.VarShort) { out ->
         out.writeByte(type.ordinal)
         when (type) {
-            ReflectionCheckType.GET_INT,
-            ReflectionCheckType.SET_INT,
-            ReflectionCheckType.GET_FIELD_MODIFIERS -> {
+            ReflectionCheckType.GET_INT, ReflectionCheckType.SET_INT, ReflectionCheckType.GET_FIELD_MODIFIERS -> {
                 out.writeString(className)
                 out.writeString(methodName)
                 if (type == ReflectionCheckType.SET_INT)
                     fieldValue?.let { out.writeInt(it) }
             }
-            ReflectionCheckType.GET_METHOD_RETURN_VALUE,
-            ReflectionCheckType.GET_METHOD_MODIFIERS -> {
-                out. writeString(className)
+            ReflectionCheckType.GET_METHOD_RETURN_VALUE, ReflectionCheckType.GET_METHOD_MODIFIERS -> {
+                out.writeString(className)
                 out.writeString(methodName)
                 out.writeByte(paramTypes.size)
                 paramTypes.forEach { out.writeString(it) }

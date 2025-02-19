@@ -7,10 +7,10 @@ import io.ktor.utils.io.*
 import io.ktor.utils.io.CancellationException
 import io.ktor.utils.io.core.*
 import kotlinx.coroutines.*
+import kotlinx.io.EOFException
 import kotlinx.io.readByteArray
 import kotlinx.io.readUByte
 import kotlinx.io.readUShort
-import okio.EOFException
 import org.darkan.core.EnvVars
 import org.darkan.core.Logger.logError
 import org.darkan.core.Logger.logInfo

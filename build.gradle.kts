@@ -50,9 +50,7 @@ subprojects {
 
         implementation("org.mongodb:mongodb-driver-sync:5.3.1")
         implementation("org.mongodb:mongodb-driver-core:5.3.1")
-        implementation("io.undertow:undertow-websockets-jsr:2.3.18.Final")
         implementation("it.unimi.dsi:fastutil:8.5.15")
         implementation("com.trivago:fastutil-concurrent-wrapper:0.2.2")
-        implementation("com.squareup.okhttp3:okhttp:4.12.0")
     }
 }
