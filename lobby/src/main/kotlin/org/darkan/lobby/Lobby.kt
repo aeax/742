@@ -11,7 +11,9 @@ import org.darkan.core.net.JS5Server
 import org.darkan.lobby.server.LobbyServer
 import org.darkan.lobby.web.module
 import world.gregs.voidps.cache.Cache
+import world.gregs.voidps.cache.Index
 import world.gregs.voidps.cache.file.FileProvider
+import world.gregs.voidps.cache.secure.Huffman
 import kotlin.coroutines.CoroutineContext
 
 object Lobby : CoroutineScope {

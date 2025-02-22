@@ -1,6 +1,8 @@
 package org.darkan.core.net.prot.revision
 
 import io.ktor.utils.io.*
+import io.ktor.utils.io.core.readBytes
+import io.ktor.utils.io.core.remaining
 import kotlinx.io.readByteArray
 import org.darkan.core.clientwatch.MouseTrailStep
 import org.darkan.core.clientwatch.MouseTrailStep.Type
@@ -8,8 +10,11 @@ import org.darkan.core.clientwatch.ReflectionCheckType
 import org.darkan.core.clientwatch.ReflectionResponseCode
 import org.darkan.core.net.prot.*
 import world.gregs.voidps.buffer.*
+import world.gregs.voidps.cache.Cache
 import java.io.ByteArrayOutputStream
 import java.io.ObjectOutputStream
+import kotlin.math.max
+import kotlin.math.min
 
 fun register727() =
 Codec.register(727) {
@@ -43,7 +48,7 @@ Codec.register(727) {
         SendFps(
             key1 = readIntInverseMiddle(),
             key2 = readUnsignedIntMiddle(),
-            fps = readByteAdd().toInt(),
+            fps = readByteAdd().toInt()
         )
     }
 
@@ -100,7 +105,7 @@ Codec.register(727) {
                 }
                 firstByte >= 128 -> {
                     frames = firstByte - 128
-                    val posHash = readUShort().toInt()
+                    val posHash = readUShort()
                     dY = posHash shr 8
                     dX = posHash and 0xFF
                 }
@@ -122,10 +127,9 @@ Codec.register(727) {
         )
     }
 
-    clientProt(opcode = 28, size = ProtSize.VarShort) {
-        //TODO
-        KeyPress(readRemaining().readByteArray())
-    }
+    clientProt(opcode = 28, size = ProtSize.VarShort) { KeyPress(keyCode = readByte().toInt(), time = readMedium()) }
+
+    clientProt(opcode = 85, size = ProtSize.VarByte) { ClientCheat(client = readBoolean(), command = readString()) }
 
     // Entity interactions
     val playerOpOpcodes = intArrayOf(66, 6, 31, 89, 103, 1, 51, 94, 53, 70)
@@ -137,166 +141,235 @@ Codec.register(727) {
         )
     }
 
-    val npcOpOpcodes = intArrayOf(65, 16, 50, 77, 95)
+    val npcOpOpcodes = intArrayOf(65, 16, 50, 77, 95, 3)
     clientProt(opcodes = npcOpOpcodes, size = 3) { opcode ->
         OpNpc(
             opNum = npcOpOpcodes.indexOf(opcode),
-            npcIndex = readUShort().toInt(),
+            npcIndex = readUShort(),
             forceRun = readBoolean()
         )
     }
 
-    val objOpOpcodes = intArrayOf(75, 93, 38, 32, 48)
+    val objOpOpcodes = intArrayOf(75, 93, 38, 32, 48, 73)
     clientProt(opcodes = objOpOpcodes, size = 9) { opcode ->
         OpObj(
             opNum = objOpOpcodes.indexOf(opcode),
-            y = readUShort().toInt(),
-            x = readUShort().toInt(),
+            y = readUShort(),
+            x = readUShort(),
             objectId = readInt(),
             forceRun = readBooleanAdd()
         )
     }
 
-    val groundItemOpOpcodes = intArrayOf(24, 25, 54, 8, 43)
+    val groundItemOpOpcodes = intArrayOf(24, 25, 54, 8, 43, 61)
     clientProt(opcodes = groundItemOpOpcodes, size = 7) { opcode ->
-        // TODO: Implement decode
         OpGroundItem(
             opNum = groundItemOpOpcodes.indexOf(opcode),
-            itemId = 0,
-            x = 0,
-            y = 0,
-            forceRun = false
+            itemId = readUnsignedShortAddLittle(),
+            forceRun = readBooleanInverse(),
+            y = readUShort(),
+            x = readUnsignedShortAdd()
         )
     }
 
     clientProt(opcode = 33, size = 5) {
-        // TODO: Implement decode
-        Walk(0, 0, false)
+        val forceRun = readBoolean()
+        val x = readUShort()
+        val y = readUnsignedShortLittle()
+        Walk(x, y, forceRun, false)
     }
 
     clientProt(opcode = 42, size = 18) {
-        // TODO: Implement decode
-        MiniWalk(0, 0, false)
-    }
-
-    // Item interactions
-    clientProt(opcode = 67, size = 15) {
-        // TODO: Implement decode
-        IfOnGroundItem(0, 0, 0, 0, 0)
-    }
-
-    clientProt(opcode = 61, size = 7) {
-        // TODO: Implement decode
-        GroundItemExamine(0, 0, 0)
-    }
-
-    clientProt(opcode = 17, size = 2) {
-        // TODO: Implement decode
-        GeItemSelect(0)
-    }
-
-    // NPC interactions
-    clientProt(opcode = 3, size = 3) {
-        // TODO: Implement decode
-        NpcExamine(0)
-    }
-
-    // Object interactions
-    clientProt(opcode = 73, size = 9) {
-        // TODO: Implement decode
-        ObjectExamine(0, 0, 0)
-    }
-
-    clientProt(opcode = 98, size = 17) {
-        // TODO: Implement decode
-        IfOnObject(0, 0, 0, 0, 0)
+        val forceRun = readBoolean()
+        val x = readUShort()
+        val y = readUnsignedShortLittle()
+        readByte()
+        readByte() //always -1
+        val camAngle = readUShort()
+        readByte() //always 57
+        val minimapRotation = readUByte() //TODO
+        val minimapZoom = readUByte()
+        readByte() //always 89
+        val absX = readUShort()
+        val absY = readUShort()
+        readByte() //always 63
+        Walk(x, y, forceRun, true)
     }
 
     // Interface interactions
     val ifButtonOpcodes = intArrayOf(96, 27, 68, 9, 72, 19, 23, 21, 22, 81)
     clientProt(opcodes = ifButtonOpcodes, size = 8) { opcode ->
-        // TODO: Implement decode
-        IfButton(opNum = ifButtonOpcodes.indexOf(opcode), interfaceId = 0, componentId = 0, slotId = 0)
+        val interfaceHash = readUnsignedIntLittle()
+        IfButton(
+            opNum = ifButtonOpcodes.indexOf(opcode),
+            interfaceId = interfaceHash shr 16,
+            componentId = interfaceHash and 0xFFFF,
+            slotId = readUShort(),
+            itemId = readShortAdd()
+        )
     }
 
     clientProt(opcode = 4, size = 16) {
-        // TODO: Implement decode
-        IfOnIf(0, 0, 0, 0)
+        val toSlot = readShortAddLittle()
+        val fromSlot = readUnsignedShortLittle()
+        val toItemId = readShortAddLittle()
+        val toHash = readUnsignedIntLittle()
+        val fromHash = readIntInverseMiddle()
+        val fromItemId = readUnsignedShortLittle()
+        IfOnIf(
+            fromInter = fromHash shr 16,
+            toInter = toHash shr 16,
+            fromComp = fromHash and 0xFFFF,
+            toComp = toHash and 0xFFFF,
+            fromSlot = fromSlot,
+            toSlot = toSlot,
+            fromItemId = fromItemId,
+            toItemId = toItemId
+        )
+    }
+
+    clientProt(opcode = 98, size = 17) {
+        val x = readShortAddLittle()
+        val forceRun = readBooleanAdd()
+        val objectId = readUnsignedIntMiddle()
+        val interfaceHash = readInt()
+        val itemId = readUnsignedShortLittle()
+        val slotId = readShortAdd()
+        val y = readUnsignedShortLittle()
+        IfOnObject(
+            interfaceId = interfaceHash shr 16,
+            componentId = interfaceHash and 0xFFFF,
+            slotId = slotId,
+            itemId = itemId,
+            objectId = objectId,
+            x = x,
+            y = y,
+            forceRun = forceRun
+        )
+    }
+
+    clientProt(opcode = 67, size = 15) {
+        val itemIdContainer = readShortAdd()
+        val interfaceHash = readIntInverseMiddle()
+        val itemId = readShort().toInt()
+        val forceRun = readBooleanAdd()
+        val slotId = readShortAddLittle()
+        val y = readShortAddLittle()
+        val x = readUnsignedShortLittle()
+        IfOnGroundItem(
+            interfaceId = interfaceHash shr 16,
+            componentId = interfaceHash and 0xFFFF,
+            slotId = slotId,
+            itemIdContainer = itemIdContainer,
+            itemId = itemId,
+            x = x,
+            y = y,
+            forceRun = forceRun
+        )
     }
 
     clientProt(opcode = 41, size = 11) {
-        // TODO: Implement decode
-        IfOnNpc(0, 0, 0)
+        val interfaceHash = readIntInverseMiddle()
+        val npcIndex = readUnsignedShortAddLittle()
+        val forceRun = readBooleanSubtract()
+        val itemId = readUnsignedShortAddLittle()
+        val slotId = readUnsignedShortAdd()
+        IfOnNpc(
+            interfaceId = interfaceHash shr 16,
+            componentId = interfaceHash and 0xFFFF,
+            slotId = slotId,
+            itemId = itemId,
+            npcIndex = npcIndex,
+            forceRun = forceRun
+        )
     }
 
     clientProt(opcode = 13, size = 11) {
-        // TODO: Implement decode
-        IfOnPlayer(0, 0, 0)
+        val slotId = readUShort()
+        val playerIndex = readUnsignedShortLittle()
+        val forceRun = readBooleanSubtract()
+        val interfaceHash = readIntInverseMiddle()
+        val itemId = readUnsignedShortLittle()
+        IfOnPlayer(
+            interfaceId = interfaceHash shr 16,
+            componentId = interfaceHash and 0xFFFF,
+            slotId = slotId,
+            itemId = itemId,
+            playerIndex = playerIndex,
+            forceRun = forceRun
+        )
     }
 
     clientProt(opcode = 46, size = 12) {
-        // TODO: Implement decode
-        IfOnTile(0, 0, 0, 0)
+        val itemId = readUnsignedShortLittle()
+        val y = readUnsignedShortLittle()
+        val interfaceHash = readIntInverseMiddle()
+        val slotId = readShortAdd()
+        val x = readUnsignedShortLittle()
+        IfOnTile(
+            interfaceId = interfaceHash shr 16,
+            componentId = interfaceHash and 0xFFFF,
+            slotId = slotId,
+            itemId = itemId,
+            x = x,
+            y = y
+        )
     }
 
     clientProt(opcode = 49, size = 6) {
-        // TODO: Implement decode
-        IfContinue(0, 0)
+        val interfaceHash = readUnsignedIntMiddle()
+        val slotId = readShortAddLittle()
+        IfContinue(
+            interfaceId = interfaceHash shr 16,
+            componentId = interfaceHash and 0xFFFF,
+            slotId = slotId
+        )
     }
 
     clientProt(opcode = 74, size = 16) {
-        // TODO: Implement decode
-        IfDragOntoIf(0, 0, 0, 0, 0, 0)
+        val toSlot = readShortAddLittle()
+        val fromSlot = readUnsignedShortLittle()
+        val toItemId = readShort().toInt()
+        val fromItemId = readShortAddLittle()
+        val fromInterfaceHash = readUnsignedIntMiddle()
+        val toInterfaceHash = readUnsignedIntLittle()
+        IfDragOntoIf(
+            fromInter = fromInterfaceHash shr 16,
+            toInter = toInterfaceHash shr 16,
+            fromComp = fromInterfaceHash and 0xFFFF,
+            toComp = toInterfaceHash and 0xFFFF,
+            fromSlot = fromSlot,
+            toSlot = toSlot,
+            fromItemId = fromItemId,
+            toItemId = toItemId
+        )
     }
 
     clientProt<CloseInterface>(opcode = 60)
 
     // Dialog interactions
-    clientProt(opcode = 87, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        ResumeTextDialog("")
-    }
-
-    clientProt(opcode = 80, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        ResumeNameDialog("")
-    }
-
-    clientProt(opcode = 11, size = 2) {
-        // TODO: Implement decode
-        ResumeHSLDialog(0)
-    }
-
-    clientProt(opcode = 58, size = 4) {
-        // TODO: Implement decode
-        ResumeCountDialog(0)
-    }
-
-    clientProt(opcode = 69, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        ResumeClanForumQFCDialog(readRemaining().readByteArray())
-    }
+    clientProt(opcode = 87, size = ProtSize.VarByte) { ResumeTextDialog(readString()) }
+    clientProt(opcode = 80, size = ProtSize.VarByte) { ResumeNameDialog(readString()) }
+    clientProt(opcode = 69, size = ProtSize.VarByte) { ResumeClanForumQFCDialog(readString()) }
+    clientProt(opcode = 11, size = 2) { ResumeHSLDialog(readUShort()) }
+    clientProt(opcode = 58, size = 4) { ResumeCountDialog(readInt()) }
+    clientProt(opcode = 17, size = 2) { ResumeItemSelect(readShort().toInt()) }
 
     // Communication
     clientProt(opcode = 86, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        Chat("", 0)
+        Chat(
+            color = min(0, max(readUByte(), 12)),
+            effect = min(0, max(readUByte(), 5)),
+            message = Cache.huffman.decompress(length = max(200, readSmart()), message = readRemaining().readByteArray()) ?: ""
+        )
     }
 
     clientProt(opcode = 15, size = ProtSize.VarShort) {
-        // TODO: Implement decode
-        PrivateMessage("", "")
+        PrivateMessage(readString(), Cache.huffman.decompress(length = max(150, readSmart()), message = readRemaining().readByteArray()) ?: "")
     }
 
-    clientProt(opcode = 30, size = 1) {
-        // TODO: Implement decode
-        ChatType(0)
-    }
-
-    clientProt(opcode = 20, size = 3) {
-        // TODO: Implement decode
-        ChatSetFilter(0, 0, 0)
-    }
+    clientProt(opcode = 30, size = 1) { ChatType(readUByte()) }
+    clientProt(opcode = 20, size = 3) { ChatSetFilter(readUByte(), readUByte(), readUByte()) }
 
     clientProt(opcode = 64, size = ProtSize.VarByte) {
         // TODO: Implement decode

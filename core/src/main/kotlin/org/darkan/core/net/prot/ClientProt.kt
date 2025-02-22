@@ -2,6 +2,7 @@ package org.darkan.core.net.prot
 
 import org.darkan.core.clientwatch.MouseTrailStep
 import org.darkan.core.clientwatch.ReflectionResponseCode
+import java.awt.Color
 
 interface ClientProt
 
@@ -53,71 +54,41 @@ data class MoveMouseData(val frameCount: Int, val frameSteps: Int, val steps: Ar
     }
 }
 
-data class KeyPress(val keyData: ByteArray) : ClientProt { // TODO: Define data fields
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as KeyPress
-        return keyData.contentEquals(other.keyData)
-    }
-    override fun hashCode() = keyData.contentHashCode()
-}
-
-data class ClientCheat(val command: String) : ClientProt // TODO: Define data fields
+data class KeyPress(val keyCode: Int, val time: Int) : ClientProt
+data class ClientCheat(val client: Boolean, val command: String) : ClientProt
 
 // Entity Interactions
 data class OpPlayer(val opNum: Int, val playerIndex: Int, val forceRun: Boolean) : ClientProt
 data class OpNpc(val opNum: Int, val npcIndex: Int, val forceRun: Boolean) : ClientProt
 data class OpObj(val opNum: Int, val objectId: Int, val x: Int, val y: Int, val forceRun: Boolean) : ClientProt
 data class OpGroundItem(val opNum: Int, val itemId: Int, val x: Int, val y: Int, val forceRun: Boolean) : ClientProt
-data class Walk(val x: Int, val y: Int, val forceRun: Boolean) : ClientProt // TODO: Define data fields
-data class MiniWalk(val x: Int, val y: Int, val forceRun: Boolean) : ClientProt // TODO: Define data fields
-
-// Item Interactions
-data class IfOnGroundItem(val interfaceId: Int, val componentId: Int, val itemId: Int, val x: Int, val y: Int) : ClientProt // TODO: Define data fields
-data class GroundItemExamine(val itemId: Int, val x: Int, val y: Int) : ClientProt // TODO: Define data fields
-data class GeItemSelect(val itemId: Int) : ClientProt // TODO: Define data fields
-
-// NPC Interactions
-data class NpcExamine(val npcIndex: Int) : ClientProt // TODO: Define data fields
-
-// Object Interactions
-data class ObjectExamine(val objectId: Int, val x: Int, val y: Int) : ClientProt // TODO: Define data fields
-data class IfOnObject(val interfaceId: Int, val componentId: Int, val objectId: Int, val x: Int, val y: Int) : ClientProt // TODO: Define data fields
+data class Walk(val x: Int, val y: Int, val forceRun: Boolean, val minimap: Boolean) : ClientProt
 
 // Interface Interactions
-data class IfButton(val opNum: Int, val interfaceId: Int, val componentId: Int, val slotId: Int) : ClientProt
-data class IfOnIf(val sourceInterfaceId: Int, val sourceComponentId: Int, val targetInterfaceId: Int, val targetComponentId: Int) : ClientProt // TODO: Define data fields
-data class IfOnNpc(val interfaceId: Int, val componentId: Int, val npcIndex: Int) : ClientProt // TODO: Define data fields
-data class IfOnPlayer(val interfaceId: Int, val componentId: Int, val playerIndex: Int) : ClientProt // TODO: Define data fields
-data class IfOnTile(val interfaceId: Int, val componentId: Int, val x: Int, val y: Int) : ClientProt // TODO: Define data fields
-data class IfContinue(val interfaceId: Int, val componentId: Int) : ClientProt // TODO: Define data fields
-data class IfDragOntoIf(val sourceInterfaceId: Int, val sourceComponentId: Int, val sourceSlotId: Int, val targetInterfaceId: Int, val targetComponentId: Int, val targetSlotId: Int) : ClientProt // TODO: Define data fields
+data class IfButton(val opNum: Int, val interfaceId: Int, val componentId: Int, val slotId: Int, val itemId: Int) : ClientProt
+data class IfOnIf(val fromInter: Int, val fromComp: Int, val fromSlot: Int, val fromItemId: Int, val toInter: Int, val toComp: Int, val toSlot: Int, val toItemId: Int) : ClientProt
+data class IfOnObject(val interfaceId: Int, val componentId: Int, val slotId: Int, val itemId: Int, val objectId: Int, val x: Int, val y: Int, val forceRun: Boolean) : ClientProt
+data class IfOnGroundItem(val interfaceId: Int, val componentId: Int, val slotId: Int, val itemIdContainer: Int, val itemId: Int, val x: Int, val y: Int, val forceRun: Boolean) : ClientProt
+data class IfOnNpc(val interfaceId: Int, val componentId: Int, val slotId: Int, val itemId: Int, val npcIndex: Int, val forceRun: Boolean) : ClientProt
+data class IfOnPlayer(val interfaceId: Int, val componentId: Int, val slotId: Int, val itemId: Int, val playerIndex: Int, val forceRun: Boolean) : ClientProt
+data class IfOnTile(val interfaceId: Int, val componentId: Int, val slotId: Int, val itemId: Int, val x: Int, val y: Int) : ClientProt
+data class IfContinue(val interfaceId: Int, val componentId: Int, val slotId: Int) : ClientProt
+data class IfDragOntoIf(val fromInter: Int, val fromComp: Int, val fromSlot: Int, val fromItemId: Int, val toInter: Int, val toComp: Int, val toSlot: Int, val toItemId: Int) : ClientProt
 data class CloseInterface(val dummy: Int = 0) : ClientProt
 
 // Dialog Interactions
-data class ResumeTextDialog(val text: String) : ClientProt // TODO: Define data fields
-data class ResumeNameDialog(val name: String) : ClientProt // TODO: Define data fields
-data class ResumeHSLDialog(val data: Int) : ClientProt // TODO: Define data fields
-data class ResumeCountDialog(val count: Int) : ClientProt // TODO: Define data fields
-data class ResumeClanForumQFCDialog(val data: ByteArray) : ClientProt { // TODO: Define data fields
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as ResumeClanForumQFCDialog
-        if (!data.contentEquals(other.data)) return false
-        return true
-    }
-    override fun hashCode(): Int {
-        return data.contentHashCode()
-    }
-}
+@JvmInline value class ResumeItemSelect(val itemId: Int) : ClientProt
+@JvmInline value class ResumeTextDialog(val text: String) : ClientProt
+@JvmInline value class ResumeNameDialog(val name: String) : ClientProt
+@JvmInline value class ResumeHSLDialog(val data: Int) : ClientProt
+@JvmInline value class ResumeCountDialog(val count: Int) : ClientProt
+@JvmInline value class ResumeClanForumQFCDialog(val forumQfc: String) : ClientProt
 
 // Communication
-data class Chat(val message: String, val effects: Int) : ClientProt // TODO: Define data fields
-data class PrivateMessage(val username: String, val message: String) : ClientProt // TODO: Define data fields
-data class ChatType(val type: Int) : ClientProt // TODO: Define data fields
-data class ChatSetFilter(val publicMode: Int, val privateMode: Int, val tradeMode: Int) : ClientProt // TODO: Define data fields
+data class Chat(val type: Int = -1, val color: Int, val effect: Int, val message: String) : ClientProt
+data class PrivateMessage(val toDisplayName: String, val message: String) : ClientProt
+data class ChatType(val type: Int) : ClientProt
+data class ChatSetFilter(val publicFilter: Int, val privateFilter: Int, val tradeFilter: Int) : ClientProt
 data class QuickChatPublic(val data: ByteArray) : ClientProt { // TODO: Define data fields
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

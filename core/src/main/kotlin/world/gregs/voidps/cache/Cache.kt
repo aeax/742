@@ -1,6 +1,7 @@
 package world.gregs.voidps.cache
 
 import org.darkan.core.EnvVars
+import world.gregs.voidps.cache.secure.Huffman
 import java.util.*
 
 interface Cache {
@@ -42,9 +43,16 @@ interface Cache {
     fun close()
 
     companion object {
-        fun load(): Cache {
-            val loader = if (EnvVars.memCache) MemoryCache else FileCache
-            return loader.load()
+        private val singleton: Cache by lazy {
+            if (EnvVars.memCache) MemoryCache.load() else FileCache.load()
         }
+
+        private val _huffman: Huffman by lazy {
+            Huffman().load(singleton.data(Index.HUFFMAN, 1)!!)
+        }
+
+        fun get() = singleton
+
+        val huffman: Huffman get() = _huffman
     }
 }
