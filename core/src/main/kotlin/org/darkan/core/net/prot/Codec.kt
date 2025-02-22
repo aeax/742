@@ -31,10 +31,23 @@ class Codec {
         opcodes.forEach { opcode -> clientProtsByOpcode[opcode] = codec }
     }
 
+    internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: Int, noinline decoder: (suspend ByteReadChannel.(Int) -> T)? = null) {
+        val codec = ClientProtCodec(ProtSize.Fixed(size), decoder)
+        opcodes.forEach { opcode -> clientProtsByOpcode[opcode] = codec }
+    }
+
     internal inline fun <reified T : ClientProt> clientProt(opcode: Int, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend ByteReadChannel.() -> T)? = null) {
         clientProt<T>(
             opcodes = intArrayOf(opcode),
             size = size,
+            decoder = decoder?.let { { _ -> this.it() } }
+        )
+    }
+
+    internal inline fun <reified T : ClientProt> clientProt(opcode: Int, size: Int, noinline decoder: (suspend ByteReadChannel.() -> T)? = null) {
+        clientProt<T>(
+            opcodes = intArrayOf(opcode),
+            size = ProtSize.Fixed(size),
             decoder = decoder?.let { { _ -> this.it() } }
         )
     }

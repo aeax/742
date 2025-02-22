@@ -213,6 +213,8 @@ suspend fun ByteReadChannel.readIntInverseMiddle(): Int = (readByte().toInt() sh
 
 suspend fun ByteReadChannel.readUnsignedIntInverseMiddle(): Int = (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24) or readUByte().toInt() or (readUByte().toInt() shl 8)
 
+suspend fun ByteReadChannel.readUnsignedIntLittle(): Int = (readUByte().toInt()) or (readUByte().toInt() shl 8) or (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24)
+
 suspend fun ByteReadChannel.readSmart(): Int {
     val peek = readUByte().toInt()
     return if (peek < 128) {

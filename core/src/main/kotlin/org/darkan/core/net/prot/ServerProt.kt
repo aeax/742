@@ -1,5 +1,6 @@
 package org.darkan.core.net.prot
 
+import org.darkan.core.clientwatch.ReflectionCheck
 import org.darkan.core.clientwatch.ReflectionCheckType
 import org.darkan.core.type.RegionSize
 
@@ -51,40 +52,23 @@ data class MapRegion(
     }
 }
 
-data class ReflectionRequest(
-    val type: ReflectionCheckType,
-    val className: String,
-    val methodName: String,
-    val returnType: String? = null,
-    val paramTypes: Array<String> = emptyArray(),
-    val paramValues: Array<Any> = emptyArray(),
-    val fieldValue: Int? = null
-) : ServerProt {
+data class ReflectionRequest(val id: Int, val checks: Array<ReflectionCheck>) : ServerProt {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
         other as ReflectionRequest
 
-        if (fieldValue != other.fieldValue) return false
-        if (type != other.type) return false
-        if (className != other.className) return false
-        if (methodName != other.methodName) return false
-        if (returnType != other.returnType) return false
-        if (!paramTypes.contentEquals(other.paramTypes)) return false
-        if (!paramValues.contentEquals(other.paramValues)) return false
+        if (id != other.id) return false
+        if (!checks.contentEquals(other.checks)) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = fieldValue ?: 0
-        result = 31 * result + type.hashCode()
-        result = 31 * result + className.hashCode()
-        result = 31 * result + methodName.hashCode()
-        result = 31 * result + (returnType?.hashCode() ?: 0)
-        result = 31 * result + paramTypes.contentHashCode()
-        result = 31 * result + paramValues.contentHashCode()
+        var result = id
+        result = 31 * result + checks.contentHashCode()
         return result
     }
+
 }
