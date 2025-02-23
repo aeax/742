@@ -31,7 +31,13 @@ fun Source.read40BitULong(): Long {
     return (readUByte().toLong() shl 32) + (readUByte().toLong() shl 24) + (readUByte().toLong() shl 16) + (readUByte().toLong() shl 8) + readUByte().toLong()
 }
 
-suspend fun ByteWriteChannel.writeByte(value: Boolean) = writeByte(if (value) 1 else 0)
+suspend fun ByteWriteChannel.writeBoolean(value: Boolean) = writeByte(if (value) 1 else 0)
+
+suspend fun ByteWriteChannel.writeBooleanAdd(value: Boolean) = writeByteAdd(if (value) 1 else 0)
+
+suspend fun ByteWriteChannel.writeBooleanSubtract(value: Boolean) = writeByteSubtract(if (value) 1 else 0)
+
+suspend fun ByteWriteChannel.writeBooleanInverse(value: Boolean) = writeByteInverse(if (value) 1 else 0)
 
 suspend fun ByteWriteChannel.writeByte(value: Int) = writeByte(value.toByte())
 
@@ -88,6 +94,12 @@ suspend fun ByteWriteChannel.writeMedium(value: Int) {
     writeByte(value shr 16)
     writeByte(value shr 8)
     writeByte(value)
+}
+
+suspend fun ByteWriteChannel.writeMediumReverseEnd(value: Int) {
+    writeByte(value shr 16)
+    writeByte(value)
+    writeByte(value shr 8)
 }
 
 suspend fun ByteWriteChannel.writeSmart(value: Int) {
@@ -233,7 +245,7 @@ fun Source.readSmart(): Int {
 
 suspend fun ByteWriteChannel.writeName(displayName: String, responseName: String = displayName) {
     val different = displayName != responseName
-    writeByte(different)
+    writeBoolean(different)
     writeString(displayName)
     if (different) {
         writeString(responseName)

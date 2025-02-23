@@ -515,7 +515,7 @@ Codec.register(727) {
         }
     }
 
-    serverProt<MapRegion>(opcode = 85, size = ProtSize.VarShort) { out ->
+    serverProt<BuildRegion>(opcode = 85, size = ProtSize.VarShort) { out ->
         if (localPlayerPid != null && localPlayerBaseTileHash != null && otherPlayerRegionIds != null) {
             out.bitAccess {
                 writeBits(30, localPlayerBaseTileHash)
@@ -528,7 +528,36 @@ Codec.register(727) {
         out.writeByte(mapSize.ordinal)
         out.writeShort(chunkX)
         out.writeShort(chunkY)
-        out.writeByte(if (forceMapRefresh) 1 else 0)
+        out.writeBoolean(forceMapRefresh)
+        xteas.forEach { keys ->
+            keys.forEach { key -> out.writeInt(key) }
+        }
+    }
+
+    serverProt<BuildInstancedRegion>(opcode = 51, size = ProtSize.VarShort) { out ->
+        if (localPlayerPid != null && localPlayerBaseTileHash != null && otherPlayerRegionIds != null) {
+            out.bitAccess {
+                writeBits(30, localPlayerBaseTileHash)
+                otherPlayerRegionIds.forEachIndexed { index, region ->
+                    if (index != localPlayerPid)
+                        writeBits(18, region)
+                }
+            }
+        }
+        out.writeBooleanInverse(forceMapRefresh)
+        out.writeByteSubtract(instanceLoadType.index)
+        out.writeByteAdd(mapSize.ordinal)
+        out.writeShortAdd(chunkY)
+        out.writeShort(chunkX)
+        out.bitAccess {
+            chunks.forEach {
+                if (it == -1) writeBit(false)
+                else {
+                    writeBit(true)
+                    writeBits(26, it)
+                }
+            }
+        }
         xteas.forEach { keys ->
             keys.forEach { key -> out.writeInt(key) }
         }
