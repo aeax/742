@@ -10,6 +10,7 @@ import org.darkan.core.clientwatch.MouseTrailStep.Type
 import org.darkan.core.clientwatch.ReflectionCheckType
 import org.darkan.core.clientwatch.ReflectionResponseCode
 import org.darkan.core.net.prot.*
+import org.darkan.core.type.Preference
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.type.Tile
@@ -132,7 +133,7 @@ Codec.register(727) {
 
     clientProt(opcode = 28, size = ProtSize.VarShort) { KeyPress(keyCode = readByte().toInt(), time = readMedium()) }
 
-    clientProt(opcode = 85, size = ProtSize.VarByte) { ClientCheat(client = readBoolean(), command = readString()) }
+    clientProt(opcode = 85, size = ProtSize.VarByte) { ClientCheat(client = readBoolean(), command = readRSString()) }
 
     // Entity interactions
     val playerOpOpcodes = intArrayOf(66, 6, 31, 89, 103, 1, 51, 94, 53, 70)
@@ -351,9 +352,9 @@ Codec.register(727) {
     clientProt<CloseInterface>(opcode = 60)
 
     // Dialog interactions
-    clientProt(opcode = 87, size = ProtSize.VarByte) { ResumeTextDialog(readString()) }
-    clientProt(opcode = 80, size = ProtSize.VarByte) { ResumeNameDialog(readString()) }
-    clientProt(opcode = 69, size = ProtSize.VarByte) { ResumeClanForumQFCDialog(readString()) }
+    clientProt(opcode = 87, size = ProtSize.VarByte) { ResumeTextDialog(readRSString()) }
+    clientProt(opcode = 80, size = ProtSize.VarByte) { ResumeNameDialog(readRSString()) }
+    clientProt(opcode = 69, size = ProtSize.VarByte) { ResumeClanForumQFCDialog(readRSString()) }
     clientProt(opcode = 11, size = 2) { ResumeHSLDialog(readUShort().toInt()) }
     clientProt(opcode = 58, size = 4) { ResumeCountDialog(readInt()) }
     clientProt(opcode = 17, size = 2) { ResumeItemSelect(readShort().toInt()) }
@@ -368,7 +369,7 @@ Codec.register(727) {
     }
 
     clientProt(opcode = 15, size = ProtSize.VarShort) {
-        PrivateMessage(readString(), Cache.huffman.decompress(length = max(150, readSmart()), message = readByteArray(remaining.toInt())) ?: "")
+        PrivateMessage(readRSString(), Cache.huffman.decompress(length = max(150, readSmart()), message = readByteArray(remaining.toInt())) ?: "")
     }
 
     clientProt(opcode = 64, size = ProtSize.VarByte) {
@@ -381,7 +382,7 @@ Codec.register(727) {
 
     clientProt(opcode = 14, size = ProtSize.VarByte) {
         QuickChatPrivate(
-            toUsername = readString(),
+            toUsername = readRSString(),
             qcId = readUShort().toInt(),
             messageData = if (remaining > 0) readByteArray(remaining.toInt()) else null
         )
@@ -391,22 +392,22 @@ Codec.register(727) {
     clientProt(opcode = 20, size = 3) { ChatSetFilter(readUByte().toInt(), readUByte().toInt(), readUByte().toInt()) }
 
     // Friends/Ignore List
-    clientProt(opcode = 26, size = ProtSize.VarByte) { AddFriend(readString()) }
-    clientProt(opcode = 29, size = ProtSize.VarByte) { RemoveFriend(readString()) }
-    clientProt(opcode = 34, size = ProtSize.VarByte) { AddIgnore(readString(), readBoolean()) }
-    clientProt(opcode = 12, size = ProtSize.VarByte) { RemoveIgnore(readString()) }
+    clientProt(opcode = 26, size = ProtSize.VarByte) { AddFriend(readRSString()) }
+    clientProt(opcode = 29, size = ProtSize.VarByte) { RemoveFriend(readRSString()) }
+    clientProt(opcode = 34, size = ProtSize.VarByte) { AddIgnore(readRSString(), readBoolean()) }
+    clientProt(opcode = 12, size = ProtSize.VarByte) { RemoveIgnore(readRSString()) }
 
     // Friend Chat
-    clientProt(opcode = 71, size = ProtSize.VarByte) { FcJoin(if (remaining > 0) readString() else null) }
-    clientProt(opcode = 91, size = ProtSize.VarByte) { FcKick(readString()) }
-    clientProt(opcode = 7, size = ProtSize.VarByte) { FcSetRank(rank = readByteSubtract(), username = readString()) }
+    clientProt(opcode = 71, size = ProtSize.VarByte) { FcJoin(if (remaining > 0) readRSString() else null) }
+    clientProt(opcode = 91, size = ProtSize.VarByte) { FcKick(readRSString()) }
+    clientProt(opcode = 7, size = ProtSize.VarByte) { FcSetRank(rank = readByteSubtract(), username = readRSString()) }
 
     // Clan Chat
     clientProt(opcode = 90, size = ProtSize.VarByte) {
         ClanChannelKickUser(
             guest = !readBoolean(),
             pid = readUShort().toInt(),
-            username = readString()
+            username = readRSString()
         )
     }
 
@@ -419,83 +420,59 @@ Codec.register(727) {
     clientProt(opcode = 5, size = 4) { WorldMapClick(Tile(readUnsignedIntLittle())) }
 
     clientProt(opcode = 10, size = ProtSize.VarByte) {
-        SendPreferences(readByteArray(remaining.toInt()))
+        SendPreferences(buildMap {
+            var currIdx = 0
+            while (remaining > 0) {
+                Preference.forIndex(currIdx++)?.let {
+                    put(it, readUByte().toInt())
+                } ?: readUByte()
+            }
+        })
     }
 
-    clientProt(opcode = 55, size = 4) {
-        // TODO: Implement decode
-        TransmitvarVerifyid(0)
-    }
-
-    clientProt(opcode = 47, size = 4) {
-        // TODO: Implement decode
-        RequestWorldList(0)
-    }
+    clientProt(opcode = 55, size = 4) { TransmitvarVerifyId(readInt()) }
+    clientProt(opcode = 47, size = 4) { RequestWorldList(readInt()) }
 
     // Reporting/Bug Tracking
     clientProt(opcode = 100, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        ReportAbuse("")
+        ReportAbuse(
+            username = readRSString(),
+            type = readUByte().toInt(),
+            mute = readBoolean(),
+            reason = readRSString()
+        )
     }
 
     clientProt(opcode = 35, size = ProtSize.VarShort) {
-        BugReport(readByteArray(remaining.toInt()))
+        BugReport(
+            category = readUByte().toInt(),
+            body = readJagString(),
+            reproSteps = readJagString()
+        )
     }
 
     // Account/Login
-    clientProt(opcode = 52, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        EmailValidationSubmitCode("")
-    }
-
-    clientProt(opcode = 92, size = ProtSize.VarShort) {
-        // TODO: Implement decode
-        EmailValidationAddNewAddress("")
-    }
-
-    clientProt(opcode = 99, size = ProtSize.VarShort) {
-        // TODO: Implement decode
-        EmailValidationChangeAddress("")
-    }
-
-    clientProt(opcode = 102, size = ProtSize.VarShort) {
-        // TODO: Implement decode
-        CheckEmailValidity("")
-    }
-
-    clientProt(opcode = 101, size = ProtSize.VarShort) {
-        SendSignUpForm(readByteArray(remaining.toInt()))
-    }
-
-    clientProt(opcode = 79, size = 1) {
-        // TODO: Implement decode
-        AccountCreationStage(0)
-    }
+    clientProt(opcode = 52, size = ProtSize.VarByte) { EmailValidationSubmitCode(readRSString()) }
+    clientProt(opcode = 92, size = ProtSize.VarShort) { EmailValidationAddNewAddress(readRSString(), readByte().toInt()) }
+    clientProt(opcode = 99, size = ProtSize.VarShort) { EmailValidationChangeAddress(readRSString(), readRSString()) }
+    clientProt(opcode = 102, size = ProtSize.VarShort) { CheckEmailValidity(readByteArray(remaining.toInt())) }
+    clientProt(opcode = 101, size = ProtSize.VarShort) { SendSignUpForm(readByteArray(remaining.toInt())) }
+    clientProt(opcode = 79, size = 1) { AccountCreationStage(readUByte().toInt()) }
 
     clientProt(opcode = 56, size = ProtSize.VarShort) {
-        // TODO: Implement decode
-        LobbyHyperlink("")
+        LobbyHyperlink(
+            service = readRSString(),
+            page = readRSString(),
+            query = readRSString(),
+            flags = readByte().toInt()
+        )
     }
 
     // Unknown/Misc
-    clientProt(opcode = 37, size = 2) {
-        // TODO: Implement decode
-        Unk37(0)
-    }
-
-    clientProt(opcode = 63, size = 4) {
-        // TODO: Implement decode
-        Unk63(0)
-    }
-
-    clientProt(opcode = 82, size = 4) {
-        // TODO: Implement decode
-        Unk82(0)
-    }
-
-    clientProt(opcode = 97, size = ProtSize.VarByte) {
-        Unk97(readByteArray(remaining.toInt()))
-    }
+    clientProt(opcode = 37, size = 2) { PlayVorbis(readShort().toInt()) }
+    clientProt(opcode = 63, size = 4) { AltWalk(x = readShortAdd(), y = readShort().toInt()) }
+    clientProt(opcode = 82, size = 4) { AppletLoadingPleaseWait(readInt() /*Always 1057001181*/) }
+    clientProt(opcode = 97, size = ProtSize.VarByte) { UnkCs2StringResponse(readRSString()) }
 
     /*
      * Server protocol

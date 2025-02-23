@@ -2,6 +2,7 @@ package org.darkan.core.net.prot
 
 import org.darkan.core.clientwatch.MouseTrailStep
 import org.darkan.core.clientwatch.ReflectionResponseCode
+import org.darkan.core.type.Preference
 import world.gregs.voidps.type.Tile
 import java.awt.Color
 
@@ -149,69 +150,25 @@ data class ClanChannelKickUser(val guest: Boolean, val pid: Int, val username: S
 @JvmInline value class CutsceneFinished(val forced: Boolean) : ClientProt
 @JvmInline value class WritePing(val ping: Int) : ClientProt
 @JvmInline value class WorldMapClick(val tile: Tile) : ClientProt
-data class SendPreferences(val data: ByteArray) : ClientProt { // TODO: Define data fields
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as SendPreferences
-        if (!data.contentEquals(other.data)) return false
-        return true
-    }
-    override fun hashCode(): Int {
-        return data.contentHashCode()
-    }
-}
-data class TransmitvarVerifyid(val id: Int) : ClientProt // TODO: Define data fields
-data class RequestWorldList(val version: Int) : ClientProt // TODO: Define data fields
+@JvmInline value class SendPreferences(val preferences: Map<Preference, Int>) : ClientProt
+@JvmInline value class TransmitvarVerifyId(val id: Int) : ClientProt
+@JvmInline value class RequestWorldList(val worldId: Int) : ClientProt
 
 // Reporting/Bug Tracking
-data class ReportAbuse(val username: String) : ClientProt // TODO: Define data fields
-data class BugReport(val data: ByteArray) : ClientProt { // TODO: Define data fields
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as BugReport
-        if (!data.contentEquals(other.data)) return false
-        return true
-    }
-    override fun hashCode(): Int {
-        return data.contentHashCode()
-    }
-}
+data class ReportAbuse(val username: String, val type: Int, val mute: Boolean, val reason: String) : ClientProt
+data class BugReport(val category: Int, val body: String, val reproSteps: String) : ClientProt
 
 // Account/Login
-data class EmailValidationSubmitCode(val code: String) : ClientProt // TODO: Define data fields
-data class EmailValidationAddNewAddress(val email: String) : ClientProt // TODO: Define data fields
-data class EmailValidationChangeAddress(val email: String) : ClientProt // TODO: Define data fields
-data class CheckEmailValidity(val email: String) : ClientProt // TODO: Define data fields
-data class SendSignUpForm(val data: ByteArray) : ClientProt { // TODO: Define data fields
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as SendSignUpForm
-        if (!data.contentEquals(other.data)) return false
-        return true
-    }
-    override fun hashCode(): Int {
-        return data.contentHashCode()
-    }
-}
-data class AccountCreationStage(val stage: Int) : ClientProt // TODO: Define data fields
-data class LobbyHyperlink(val url: String) : ClientProt // TODO: Define data fields
+@JvmInline value class EmailValidationSubmitCode(val code: String) : ClientProt
+data class EmailValidationAddNewAddress(val email: String, val flags: Int) : ClientProt
+data class EmailValidationChangeAddress(val email: String, val email2: String) : ClientProt
+@JvmInline value class CheckEmailValidity(val encryptedData: ByteArray) : ClientProt
+@JvmInline value class SendSignUpForm(val encryptedData: ByteArray) : ClientProt
+@JvmInline value class AccountCreationStage(val stage: Int) : ClientProt
+data class LobbyHyperlink(val service: String, val page: String, val query: String, val flags: Int) : ClientProt
 
 // Unknown/Misc
-data class Unk37(val data: Int) : ClientProt // TODO: Define data fields
-data class Unk63(val data: Int) : ClientProt // TODO: Define data fields
-data class Unk82(val data: Int) : ClientProt // TODO: Define data fields
-data class Unk97(val data: ByteArray) : ClientProt { // TODO: Define data fields
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as Unk97
-        if (!data.contentEquals(other.data)) return false
-        return true
-    }
-    override fun hashCode(): Int {
-        return data.contentHashCode()
-    }
-}
+@JvmInline value class PlayVorbis(val fileId: Int) : ClientProt
+data class AltWalk(val x: Int, val y: Int) : ClientProt
+@JvmInline value class AppletLoadingPleaseWait(val data: Int) : ClientProt
+@JvmInline value class UnkCs2StringResponse(val str: String) : ClientProt

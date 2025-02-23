@@ -9,7 +9,6 @@ import kotlinx.io.Source
 import kotlinx.io.readUByte
 import world.gregs.voidps.buffer.write.BufferWriter
 import kotlin.random.Random
-import kotlin.text.StringBuilder
 import kotlin.text.toByteArray
 
 fun Source.readUByte(): Int = readByte().toInt() and 0xff
@@ -169,7 +168,7 @@ suspend fun ByteReadChannel.readString(): String {
     return sb.toString()
 }
 
-fun Source.readString(): String {
+fun Source.readRSString(): String {
     val sb = StringBuilder()
     var b: Int
     while (remaining > 0) {
@@ -180,6 +179,15 @@ fun Source.readString(): String {
         sb.append(b.toChar())
     }
     return sb.toString()
+}
+
+fun Source.readJagString(): String {
+    readByte()
+    var s = ""
+    var b: Int
+    while ((readByte().toInt().also { b = it }) != 0)
+        s += b.toChar()
+    return s
 }
 
 fun Source.readBoolean(): Boolean = readByte().toInt() == 1
