@@ -1,9 +1,10 @@
 package org.darkan.core.net.prot.revision
 
-import io.ktor.utils.io.*
-import io.ktor.utils.io.core.readBytes
 import io.ktor.utils.io.core.remaining
+import io.ktor.utils.io.writeInt
 import kotlinx.io.readByteArray
+import kotlinx.io.readUByte
+import kotlinx.io.readUShort
 import org.darkan.core.clientwatch.MouseTrailStep
 import org.darkan.core.clientwatch.MouseTrailStep.Type
 import org.darkan.core.clientwatch.ReflectionCheckType
@@ -11,8 +12,10 @@ import org.darkan.core.clientwatch.ReflectionResponseCode
 import org.darkan.core.net.prot.*
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.Cache
+import world.gregs.voidps.type.Tile
 import java.io.ByteArrayOutputStream
 import java.io.ObjectOutputStream
+import kotlin.io.use
 import kotlin.math.max
 import kotlin.math.min
 
@@ -26,7 +29,7 @@ Codec.register(727) {
 
     clientProt(opcode = 36, size = ProtSize.VarByte) {
         val responseCode = ReflectionResponseCode.fromId(readByte().toInt()) ?: throw IllegalArgumentException("Invalid response code")
-        ReflectionResponse(responseCode, readRemaining().readByteArray())
+        ReflectionResponse(responseCode, readByteArray(remaining.toInt()))
     }
 
     clientProt(opcode = 62, size = 1) { ClientFocus(readBoolean()) }
@@ -34,8 +37,8 @@ Codec.register(727) {
     clientProt(opcode = 84, size = 6) {
         ClientScreenSize(
             displayMode = readUByte().toInt(),
-            width = readUShort(),
-            height = readUShort(),
+            width = readUShort().toInt(),
+            height = readUShort().toInt(),
             switchDisplayMode = readBoolean()
         )
     }
@@ -79,7 +82,7 @@ Codec.register(727) {
         val steps = mutableListOf<MouseTrailStep>()
         val frameSteps = readUByte().toInt()
         val frameCount = readUByte().toInt()
-        while (!isClosedForRead) {
+        while (remaining > 0) {
             val firstByte = readByte().toUByte().toInt()
 
             var frames: Int
@@ -105,7 +108,7 @@ Codec.register(727) {
                 }
                 firstByte >= 128 -> {
                     frames = firstByte - 128
-                    val posHash = readUShort()
+                    val posHash = readUShort().toInt()
                     dY = posHash shr 8
                     dX = posHash and 0xFF
                 }
@@ -145,7 +148,7 @@ Codec.register(727) {
     clientProt(opcodes = npcOpOpcodes, size = 3) { opcode ->
         OpNpc(
             opNum = npcOpOpcodes.indexOf(opcode),
-            npcIndex = readUShort(),
+            npcIndex = readUShort().toInt(),
             forceRun = readBoolean()
         )
     }
@@ -154,8 +157,8 @@ Codec.register(727) {
     clientProt(opcodes = objOpOpcodes, size = 9) { opcode ->
         OpObj(
             opNum = objOpOpcodes.indexOf(opcode),
-            y = readUShort(),
-            x = readUShort(),
+            y = readUShort().toInt(),
+            x = readUShort().toInt(),
             objectId = readInt(),
             forceRun = readBooleanAdd()
         )
@@ -167,31 +170,31 @@ Codec.register(727) {
             opNum = groundItemOpOpcodes.indexOf(opcode),
             itemId = readUnsignedShortAddLittle(),
             forceRun = readBooleanInverse(),
-            y = readUShort(),
+            y = readUShort().toInt(),
             x = readUnsignedShortAdd()
         )
     }
 
     clientProt(opcode = 33, size = 5) {
         val forceRun = readBoolean()
-        val x = readUShort()
+        val x = readUShort().toInt()
         val y = readUnsignedShortLittle()
         Walk(x, y, forceRun, false)
     }
 
     clientProt(opcode = 42, size = 18) {
         val forceRun = readBoolean()
-        val x = readUShort()
+        val x = readUShort().toInt()
         val y = readUnsignedShortLittle()
         readByte()
         readByte() //always -1
-        val camAngle = readUShort()
+        val camAngle = readUShort().toInt()
         readByte() //always 57
         val minimapRotation = readUByte() //TODO
         val minimapZoom = readUByte()
         readByte() //always 89
-        val absX = readUShort()
-        val absY = readUShort()
+        val absX = readUShort().toInt()
+        val absY = readUShort().toInt()
         readByte() //always 63
         Walk(x, y, forceRun, true)
     }
@@ -204,7 +207,7 @@ Codec.register(727) {
             opNum = ifButtonOpcodes.indexOf(opcode),
             interfaceId = interfaceHash shr 16,
             componentId = interfaceHash and 0xFFFF,
-            slotId = readUShort(),
+            slotId = readUShort().toInt(),
             itemId = readShortAdd()
         )
     }
@@ -285,7 +288,7 @@ Codec.register(727) {
     }
 
     clientProt(opcode = 13, size = 11) {
-        val slotId = readUShort()
+        val slotId = readUShort().toInt()
         val playerIndex = readUnsignedShortLittle()
         val forceRun = readBooleanSubtract()
         val interfaceHash = readIntInverseMiddle()
@@ -351,108 +354,72 @@ Codec.register(727) {
     clientProt(opcode = 87, size = ProtSize.VarByte) { ResumeTextDialog(readString()) }
     clientProt(opcode = 80, size = ProtSize.VarByte) { ResumeNameDialog(readString()) }
     clientProt(opcode = 69, size = ProtSize.VarByte) { ResumeClanForumQFCDialog(readString()) }
-    clientProt(opcode = 11, size = 2) { ResumeHSLDialog(readUShort()) }
+    clientProt(opcode = 11, size = 2) { ResumeHSLDialog(readUShort().toInt()) }
     clientProt(opcode = 58, size = 4) { ResumeCountDialog(readInt()) }
     clientProt(opcode = 17, size = 2) { ResumeItemSelect(readShort().toInt()) }
 
     // Communication
     clientProt(opcode = 86, size = ProtSize.VarByte) {
         Chat(
-            color = min(0, max(readUByte(), 12)),
-            effect = min(0, max(readUByte(), 5)),
-            message = Cache.huffman.decompress(length = max(200, readSmart()), message = readRemaining().readByteArray()) ?: ""
+            color = min(0, max(readUByte().toInt(), 12)),
+            effect = min(0, max(readUByte().toInt(), 5)),
+            message = Cache.huffman.decompress(length = max(200, readSmart()), message = readByteArray(remaining.toInt())) ?: ""
         )
     }
 
     clientProt(opcode = 15, size = ProtSize.VarShort) {
-        PrivateMessage(readString(), Cache.huffman.decompress(length = max(150, readSmart()), message = readRemaining().readByteArray()) ?: "")
+        PrivateMessage(readString(), Cache.huffman.decompress(length = max(150, readSmart()), message = readByteArray(remaining.toInt())) ?: "")
     }
 
-    clientProt(opcode = 30, size = 1) { ChatType(readUByte()) }
-    clientProt(opcode = 20, size = 3) { ChatSetFilter(readUByte(), readUByte(), readUByte()) }
-
     clientProt(opcode = 64, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        QuickChatPublic(readRemaining().readByteArray())
+        QuickChatPublic(
+            chatType = readByte().toInt(),
+            qcId = readUShort().toInt(),
+            messageData = if (remaining > 0) readByteArray(remaining.toInt()) else null
+        )
     }
 
     clientProt(opcode = 14, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        QuickChatPrivate(readRemaining().readByteArray())
+        QuickChatPrivate(
+            toUsername = readString(),
+            qcId = readUShort().toInt(),
+            messageData = if (remaining > 0) readByteArray(remaining.toInt()) else null
+        )
     }
+
+    clientProt(opcode = 30, size = 1) { ChatType(readUByte().toInt()) }
+    clientProt(opcode = 20, size = 3) { ChatSetFilter(readUByte().toInt(), readUByte().toInt(), readUByte().toInt()) }
 
     // Friends/Ignore List
-    clientProt(opcode = 26, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        AddFriend("")
-    }
-
-    clientProt(opcode = 29, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        RemoveFriend("")
-    }
-
-    clientProt(opcode = 34, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        AddIgnore("")
-    }
-
-    clientProt(opcode = 12, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        RemoveIgnore("")
-    }
+    clientProt(opcode = 26, size = ProtSize.VarByte) { AddFriend(readString()) }
+    clientProt(opcode = 29, size = ProtSize.VarByte) { RemoveFriend(readString()) }
+    clientProt(opcode = 34, size = ProtSize.VarByte) { AddIgnore(readString(), readBoolean()) }
+    clientProt(opcode = 12, size = ProtSize.VarByte) { RemoveIgnore(readString()) }
 
     // Friend Chat
-    clientProt(opcode = 71, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        FcJoin("")
-    }
-
-    clientProt(opcode = 91, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        FcKick("")
-    }
-
-    clientProt(opcode = 7, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        FcSetRank("", 0)
-    }
+    clientProt(opcode = 71, size = ProtSize.VarByte) { FcJoin(if (remaining > 0) readString() else null) }
+    clientProt(opcode = 91, size = ProtSize.VarByte) { FcKick(readString()) }
+    clientProt(opcode = 7, size = ProtSize.VarByte) { FcSetRank(rank = readByteSubtract(), username = readString()) }
 
     // Clan Chat
     clientProt(opcode = 90, size = ProtSize.VarByte) {
-        // TODO: Implement decode
-        ClanChannelKickUser("")
+        ClanChannelKickUser(
+            guest = !readBoolean(),
+            pid = readUShort().toInt(),
+            username = readString()
+        )
     }
 
     // Game State
     clientProt<RegionLoadedConfirm>(opcode = 76)
-
-    clientProt(opcode = 2, size = 4) {
-        // TODO: Implement decode
-        SoundEffectMusicEnded(0)
-    }
-
-    clientProt(opcode = 18, size = 4) {
-        // TODO: Implement decode
-        SongLoaded(0)
-    }
-
-    clientProt(opcode = 45, size = 1) {
-        CutsceneFinished()
-    }
-
-    clientProt(opcode = 88, size = 2) {
-        // TODO: Implement decode
-        WritePing(0)
-    }
-
-    clientProt(opcode = 5, size = 4) {
-        // TODO: Implement decode
-        WorldMapClick(0)
-    }
+    clientProt(opcode = 2, size = 4) { SoundEffectMusicEnded(readInt()) }
+    clientProt(opcode = 18, size = 4) { SongLoaded(readInt()) }
+    clientProt(opcode = 45, size = 1) { CutsceneFinished(readBoolean()) }
+    clientProt(opcode = 88, size = 2) { WritePing(readUShort().toInt()) }
+    clientProt(opcode = 5, size = 4) { WorldMapClick(Tile(readUnsignedIntLittle())) }
 
     clientProt(opcode = 10, size = ProtSize.VarByte) {
-        SendPreferences(readRemaining().readByteArray())
+        SendPreferences(readByteArray(remaining.toInt()))
     }
 
     clientProt(opcode = 55, size = 4) {
@@ -472,7 +439,7 @@ Codec.register(727) {
     }
 
     clientProt(opcode = 35, size = ProtSize.VarShort) {
-        BugReport(readRemaining().readByteArray())
+        BugReport(readByteArray(remaining.toInt()))
     }
 
     // Account/Login
@@ -497,7 +464,7 @@ Codec.register(727) {
     }
 
     clientProt(opcode = 101, size = ProtSize.VarShort) {
-        SendSignUpForm(readRemaining().readByteArray())
+        SendSignUpForm(readByteArray(remaining.toInt()))
     }
 
     clientProt(opcode = 79, size = 1) {
@@ -527,7 +494,7 @@ Codec.register(727) {
     }
 
     clientProt(opcode = 97, size = ProtSize.VarByte) {
-        Unk97(readRemaining().readByteArray())
+        Unk97(readByteArray(remaining.toInt()))
     }
 
     /*

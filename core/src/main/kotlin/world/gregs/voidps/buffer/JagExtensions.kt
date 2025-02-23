@@ -4,29 +4,31 @@ package world.gregs.voidps.buffer
 
 import io.ktor.utils.io.*
 import io.ktor.utils.io.bits.*
-import io.ktor.utils.io.core.ByteReadPacket
 import io.ktor.utils.io.core.remaining
 import kotlinx.io.Source
+import kotlinx.io.readUByte
 import world.gregs.voidps.buffer.write.BufferWriter
 import kotlin.random.Random
+import kotlin.text.StringBuilder
+import kotlin.text.toByteArray
 
-suspend fun ByteReadChannel.readUByte(): Int = readByte().toInt() and 0xff
+fun Source.readUByte(): Int = readByte().toInt() and 0xff
 
-suspend fun ByteReadChannel.readUShort(): Int = (readUByte() shl 8) or readUByte()
+fun Source.readUShort(): Int = (readUByte().toInt() shl 8) or readUByte().toInt()
 
-suspend fun ByteReadChannel.readMedium(): Int {
+fun Source.readMedium(): Int {
     return (readByte().toInt() shl 16) + (readByte().toInt() shl 8) + readByte().toInt()
 }
 
-suspend fun ByteReadChannel.readUMedium(): Int {
-    return (readUByte() shl 16) + (readUByte() shl 8) + readUByte()
+fun Source.readUMedium(): Int {
+    return (readUByte().toInt() shl 16) + (readUByte().toInt() shl 8) + readUByte().toInt()
 }
 
-suspend fun ByteReadChannel.read40BitLong(): Long {
+fun Source.read40BitLong(): Long {
     return (readByte().toLong() shl 32) + (readByte().toLong() shl 24) + (readByte().toLong() shl 16) + (readByte().toLong() shl 8) + readByte().toLong()
 }
 
-suspend fun ByteReadChannel.read40BitULong(): Long {
+fun Source.read40BitULong(): Long {
     return (readUByte().toLong() shl 32) + (readUByte().toLong() shl 24) + (readUByte().toLong() shl 16) + (readUByte().toLong() shl 8) + readUByte().toLong()
 }
 
@@ -98,9 +100,8 @@ suspend fun ByteWriteChannel.writeSmart(value: Int) {
 }
 
 suspend fun ByteWriteChannel.writeString(value: String?) {
-    if (value != null) {
+    if (value != null)
         writeFully(value.toByteArray())
-    }
     writeByte(0)
 }
 
@@ -152,12 +153,10 @@ suspend fun ByteWriteChannel.bitAccess(block: BitAccessor.() -> Unit) {
 
 suspend fun ByteWriteChannel.respond(value: Int) {
     writeByte(value)
-    flush()
 }
 
 suspend fun ByteWriteChannel.finish(value: Int) {
     respond(value)
-    flushAndClose()
 }
 
 suspend fun ByteReadChannel.readString(): String {
@@ -183,39 +182,39 @@ fun Source.readString(): String {
     return sb.toString()
 }
 
-suspend fun ByteReadChannel.readBoolean(): Boolean = readByte().toInt() == 1
+fun Source.readBoolean(): Boolean = readByte().toInt() == 1
 
-suspend fun ByteReadChannel.readBooleanInverse() = readByteInverse() == 1
+fun Source.readBooleanInverse() = readByteInverse() == 1
 
-suspend fun ByteReadChannel.readBooleanSubtract() = readByteSubtract() == 1
+fun Source.readBooleanSubtract() = readByteSubtract() == 1
 
-suspend fun ByteReadChannel.readBooleanAdd() = readByteAdd() == 1
+fun Source.readBooleanAdd() = readByteAdd() == 1
 
-suspend fun ByteReadChannel.readByteAdd(): Int = (readByte() - 128).toByte().toInt()
+fun Source.readByteAdd(): Int = (readByte() - 128).toByte().toInt()
 
-suspend fun ByteReadChannel.readByteInverse(): Int = -readByte()
+fun Source.readByteInverse(): Int = -readByte()
 
-suspend fun ByteReadChannel.readByteSubtract(): Int = (readByteInverse() + 128).toByte().toInt()
+fun Source.readByteSubtract(): Int = (readByteInverse() + 128).toByte().toInt()
 
-suspend fun ByteReadChannel.readShortAdd(): Int = (readByte().toInt() shl 8) or readByteAdd()
+fun Source.readShortAdd(): Int = (readByte().toInt() shl 8) or readByteAdd()
 
-suspend fun ByteReadChannel.readShortAddLittle(): Int = ((readByte().toInt() - 128) and 0xff) or ((readByte().toInt() shl 8) and 0xff00)
+fun Source.readShortAddLittle(): Int = ((readByte().toInt() - 128) and 0xff) or ((readByte().toInt() shl 8) and 0xff00)
 
-suspend fun ByteReadChannel.readUnsignedShortAdd(): Int = (readByte().toInt() shl 8) or ((readByte() - 128) and 0xff)
+fun Source.readUnsignedShortAdd(): Int = (readByte().toInt() shl 8) or ((readByte() - 128) and 0xff)
 
-suspend fun ByteReadChannel.readUnsignedShortLittle(): Int = readUByte().toInt() or (readUByte().toInt() shl 8)
+fun Source.readUnsignedShortLittle(): Int = readUByte().toInt() or (readUByte().toInt() shl 8)
 
-suspend fun ByteReadChannel.readUnsignedShortAddLittle(): Int = (readByte() - 128 and 0xff) + (readByte().toInt() shl 8 and 0xff00)
+fun Source.readUnsignedShortAddLittle(): Int = (readByte() - 128 and 0xff) + (readByte().toInt() shl 8 and 0xff00)
 
-suspend fun ByteReadChannel.readUnsignedIntMiddle(): Int = (readUByte().toInt() shl 8) or readUByte().toInt() or (readUByte().toInt() shl 24) or (readUByte().toInt() shl 16)
+fun Source.readUnsignedIntMiddle(): Int = (readUByte().toInt() shl 8) or readUByte().toInt() or (readUByte().toInt() shl 24) or (readUByte().toInt() shl 16)
 
-suspend fun ByteReadChannel.readIntInverseMiddle(): Int = (readByte().toInt() shl 16) or (readByte().toInt() shl 24) or readUByte().toInt() or (readByte().toInt() shl 8)
+fun Source.readIntInverseMiddle(): Int = (readByte().toInt() shl 16) or (readByte().toInt() shl 24) or readUByte().toInt() or (readByte().toInt() shl 8)
 
-suspend fun ByteReadChannel.readUnsignedIntInverseMiddle(): Int = (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24) or readUByte().toInt() or (readUByte().toInt() shl 8)
+fun Source.readUnsignedIntInverseMiddle(): Int = (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24) or readUByte().toInt() or (readUByte().toInt() shl 8)
 
-suspend fun ByteReadChannel.readUnsignedIntLittle(): Int = (readUByte().toInt()) or (readUByte().toInt() shl 8) or (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24)
+fun Source.readUnsignedIntLittle(): Int = (readUByte().toInt()) or (readUByte().toInt() shl 8) or (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24)
 
-suspend fun ByteReadChannel.readSmart(): Int {
+fun Source.readSmart(): Int {
     val peek = readUByte().toInt()
     return if (peek < 128) {
         peek and 0xFF
@@ -255,8 +254,7 @@ suspend fun ByteWriteChannel.writeLong(string: String) {
             in 0..9 -> long += char - 21L
         }
     }
-    while (long % 37L == 0L && long != 0L) {
+    while (long % 37L == 0L && long != 0L)
         long /= 37L
-    }
     writeLong(long)
 }

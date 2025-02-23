@@ -2,6 +2,7 @@ package org.darkan.core.net.prot
 
 import org.darkan.core.clientwatch.MouseTrailStep
 import org.darkan.core.clientwatch.ReflectionResponseCode
+import world.gregs.voidps.type.Tile
 import java.awt.Color
 
 interface ClientProt
@@ -87,64 +88,67 @@ data class CloseInterface(val dummy: Int = 0) : ClientProt
 // Communication
 data class Chat(val type: Int = -1, val color: Int, val effect: Int, val message: String) : ClientProt
 data class PrivateMessage(val toDisplayName: String, val message: String) : ClientProt
-data class ChatType(val type: Int) : ClientProt
+@JvmInline value class ChatType(val type: Int) : ClientProt
 data class ChatSetFilter(val publicFilter: Int, val privateFilter: Int, val tradeFilter: Int) : ClientProt
-data class QuickChatPublic(val data: ByteArray) : ClientProt { // TODO: Define data fields
+data class QuickChatPublic(val chatType: Int, val qcId: Int, val messageData: ByteArray?) : ClientProt {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
         other as QuickChatPublic
-        if (!data.contentEquals(other.data)) return false
+        if (chatType != other.chatType) return false
+        if (qcId != other.qcId) return false
+        if (!messageData.contentEquals(other.messageData)) return false
         return true
     }
+
     override fun hashCode(): Int {
-        return data.contentHashCode()
+        var result = chatType
+        result = 31 * result + qcId
+        result = 31 * result + messageData.contentHashCode()
+        return result
     }
 }
-data class QuickChatPrivate(val data: ByteArray) : ClientProt { // TODO: Define data fields
+
+data class QuickChatPrivate(val toUsername: String, val qcId: Int, val messageData: ByteArray?) : ClientProt {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
         other as QuickChatPrivate
-        if (!data.contentEquals(other.data)) return false
+        if (qcId != other.qcId) return false
+        if (toUsername != other.toUsername) return false
+        if (!messageData.contentEquals(other.messageData)) return false
         return true
     }
+
     override fun hashCode(): Int {
-        return data.contentHashCode()
+        var result = qcId
+        result = 31 * result + toUsername.hashCode()
+        result = 31 * result + messageData.contentHashCode()
+        return result
     }
 }
 
 // Friends/Ignore List
-data class AddFriend(val username: String) : ClientProt // TODO: Define data fields
-data class RemoveFriend(val username: String) : ClientProt // TODO: Define data fields
-data class AddIgnore(val username: String) : ClientProt // TODO: Define data fields
-data class RemoveIgnore(val username: String) : ClientProt // TODO: Define data fields
+@JvmInline value class AddFriend(val name: String) : ClientProt
+@JvmInline value class RemoveFriend(val name: String) : ClientProt
+data class AddIgnore(val username: String, val temporary: Boolean) : ClientProt
+@JvmInline value class RemoveIgnore(val name: String) : ClientProt
 
 // Friend Chat
-data class FcJoin(val fcName: String) : ClientProt // TODO: Define data fields
-data class FcKick(val username: String) : ClientProt // TODO: Define data fields
-data class FcSetRank(val username: String, val rank: Int) : ClientProt // TODO: Define data fields
+@JvmInline value class FcJoin(val fcName: String?) : ClientProt
+@JvmInline value class FcKick(val username: String) : ClientProt
+data class FcSetRank(val username: String, val rank: Int) : ClientProt
 
 // Clan Chat
-data class ClanChannelKickUser(val username: String) : ClientProt // TODO: Define data fields
-
-// Custom Clan Chat Opcodes
-data class CcJoin(val dummy: Int = 0) : ClientProt
-data class CcLeave(val dummy: Int = 0) : ClientProt
-data class CcBan(val username: String) : ClientProt // TODO: Define data fields
-data class ClanCheckName(val name: String) : ClientProt // TODO: Define data fields
-data class ClanCreate(val name: String) : ClientProt // TODO: Define data fields
-data class ClanLeave(val dummy: Int = 0) : ClientProt
-data class ClanAddMember(val username: String) : ClientProt // TODO: Define data fields
-data class ClanKickMember(val username: String) : ClientProt // TODO: Define data fields
+data class ClanChannelKickUser(val guest: Boolean, val pid: Int, val username: String) : ClientProt
 
 // Game State
 @JvmInline value class RegionLoadedConfirm(val dummy: Int = 0) : ClientProt
-@JvmInline value class SoundEffectMusicEnded(val musicId: Int) : ClientProt // TODO: Define data fields
-@JvmInline value class SongLoaded(val songId: Int) : ClientProt // TODO: Define data fields
-data class CutsceneFinished(val dummy: Int = 0) : ClientProt // TODO: Define data fields
-data class WritePing(val ping: Int) : ClientProt // TODO: Define data fields
-data class WorldMapClick(val data: Int) : ClientProt // TODO: Define data fields
+@JvmInline value class SoundEffectMusicEnded(val musicId: Int) : ClientProt
+@JvmInline value class SongLoaded(val songId: Int) : ClientProt
+@JvmInline value class CutsceneFinished(val forced: Boolean) : ClientProt
+@JvmInline value class WritePing(val ping: Int) : ClientProt
+@JvmInline value class WorldMapClick(val tile: Tile) : ClientProt
 data class SendPreferences(val data: ByteArray) : ClientProt { // TODO: Define data fields
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

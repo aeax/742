@@ -1,6 +1,7 @@
 package org.darkan.core.net.prot
 
 import io.ktor.utils.io.*
+import kotlinx.io.Source
 import kotlin.reflect.KClass
 
 class Codec {
@@ -15,7 +16,7 @@ class Codec {
 
     data class ClientProtCodec<T : ClientProt>(
         val size: ProtSize,
-        val decoder: (suspend ByteReadChannel.(Int) -> T)?
+        val decoder: (suspend Source.(Int) -> T)?
     )
 
     internal inline fun <reified T : ServerProt> serverProt(opcode: Int, size: ProtSize = ProtSize.Fixed(0), noinline encoder: (suspend T.(ByteWriteChannel) -> Unit)? = null) {
@@ -26,17 +27,17 @@ class Codec {
         )
     }
 
-    internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend ByteReadChannel.(Int) -> T)? = null) {
+    internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend Source.(Int) -> T)? = null) {
         val codec = ClientProtCodec(size, decoder)
         opcodes.forEach { opcode -> clientProtsByOpcode[opcode] = codec }
     }
 
-    internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: Int, noinline decoder: (suspend ByteReadChannel.(Int) -> T)? = null) {
+    internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: Int, noinline decoder: (suspend Source.(Int) -> T)? = null) {
         val codec = ClientProtCodec(ProtSize.Fixed(size), decoder)
         opcodes.forEach { opcode -> clientProtsByOpcode[opcode] = codec }
     }
 
-    internal inline fun <reified T : ClientProt> clientProt(opcode: Int, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend ByteReadChannel.() -> T)? = null) {
+    internal inline fun <reified T : ClientProt> clientProt(opcode: Int, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend Source.() -> T)? = null) {
         clientProt<T>(
             opcodes = intArrayOf(opcode),
             size = size,
@@ -44,7 +45,7 @@ class Codec {
         )
     }
 
-    internal inline fun <reified T : ClientProt> clientProt(opcode: Int, size: Int, noinline decoder: (suspend ByteReadChannel.() -> T)? = null) {
+    internal inline fun <reified T : ClientProt> clientProt(opcode: Int, size: Int, noinline decoder: (suspend Source.() -> T)? = null) {
         clientProt<T>(
             opcodes = intArrayOf(opcode),
             size = ProtSize.Fixed(size),
@@ -52,7 +53,7 @@ class Codec {
         )
     }
 
-    suspend inline fun <reified T : ClientProt> decodeClientProt(opcode: Int, channel: ByteReadChannel): T? {
+    suspend inline fun <reified T : ClientProt> decodeClientProt(opcode: Int, channel: Source): T? {
         val codec = clientProtsByOpcode[opcode] ?: return null
         @Suppress("UNCHECKED_CAST")
         return when {
