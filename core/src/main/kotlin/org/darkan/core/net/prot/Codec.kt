@@ -27,6 +27,14 @@ class Codec {
         )
     }
 
+    internal inline fun <reified T : ServerProt> serverProt(opcode: Int, size: Int, noinline encoder: (suspend T.(ByteWriteChannel) -> Unit)? = null) {
+        serverProts[T::class] = ServerProtCodec(
+            opcode = opcode,
+            size = ProtSize.Fixed(size),
+            encoder = encoder?.let { { output -> (this as T).it(output) } }
+        )
+    }
+
     internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend Source.(Int) -> T)? = null) {
         val codec = ClientProtCodec(size, decoder)
         opcodes.forEach { opcode -> clientProtsByOpcode[opcode] = codec }
