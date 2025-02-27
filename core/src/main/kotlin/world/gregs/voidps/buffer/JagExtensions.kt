@@ -11,6 +11,7 @@ import world.gregs.voidps.buffer.write.BufferWriter
 import kotlin.random.Random
 import kotlin.text.toByteArray
 
+
 fun Source.readUByte(): Int = readByte().toInt() and 0xff
 
 fun Source.readUShort(): Int = (readUByte().toInt() shl 8) or readUByte().toInt()
@@ -110,6 +111,15 @@ suspend fun ByteWriteChannel.writeSmart(value: Int) {
     }
 }
 
+suspend fun ByteWriteChannel.writeFlags(flags: Int) {
+    var flags = flags
+    while ((flags and 0x7F.inv()) != 0) {
+        writeByte((flags and 0x7F) or 0x80)
+        flags = flags ushr 7
+    }
+    writeByte(flags and 0x7F)
+}
+
 suspend fun ByteWriteChannel.writeString(value: String?) {
     if (value != null)
         writeFully(value.toByteArray())
@@ -202,6 +212,20 @@ fun Source.readJagString(): String {
     return s
 }
 
+fun Source.readFlags(): Int {
+    var result = 0
+    var shift = 0
+    var currValue: Int
+    do {
+        currValue = readByte().toInt() and 0xFF
+        result = result or ((currValue and 0x7F) shl shift)
+        shift += 7
+        if (shift >= 32 && (currValue and 0x80) != 0)
+            error("Variable length quantity is too long")
+    } while ((currValue and 0x80) != 0)
+    return result
+}
+
 fun Source.readBoolean(): Boolean = readByte().toInt() == 1
 
 fun Source.readBooleanInverse() = readByteInverse() == 1
@@ -220,19 +244,26 @@ fun Source.readShortAdd(): Int = (readByte().toInt() shl 8) or readByteAdd()
 
 fun Source.readShortAddLittle(): Int = ((readByte().toInt() - 128) and 0xff) or ((readByte().toInt() shl 8) and 0xff00)
 
-fun Source.readUnsignedShortAdd(): Int = (readByte().toInt() shl 8) or ((readByte() - 128) and 0xff)
+fun Source.readUShortAdd(): Int = (readByte().toInt() shl 8) or ((readByte() - 128) and 0xff)
 
-fun Source.readUnsignedShortLittle(): Int = readUByte().toInt() or (readUByte().toInt() shl 8)
+fun Source.readUShortLittle(): Int = readUByte().toInt() or (readUByte().toInt() shl 8)
 
-fun Source.readUnsignedShortAddLittle(): Int = (readByte() - 128 and 0xff) + (readByte().toInt() shl 8 and 0xff00)
+fun Source.readShortLittle(): Int {
+    val value = readUByte().toInt() or (readUByte().toInt() shl 8)
+    if (value > 0x7FFF)
+        return value - 0x10000
+    return value
+}
 
-fun Source.readUnsignedIntMiddle(): Int = (readUByte().toInt() shl 8) or readUByte().toInt() or (readUByte().toInt() shl 24) or (readUByte().toInt() shl 16)
+fun Source.readUShortAddLittle(): Int = (readByte() - 128 and 0xff) + (readByte().toInt() shl 8 and 0xff00)
+
+fun Source.readUIntMiddle(): Int = (readUByte().toInt() shl 8) or readUByte().toInt() or (readUByte().toInt() shl 24) or (readUByte().toInt() shl 16)
 
 fun Source.readIntInverseMiddle(): Int = (readByte().toInt() shl 16) or (readByte().toInt() shl 24) or readUByte().toInt() or (readByte().toInt() shl 8)
 
-fun Source.readUnsignedIntInverseMiddle(): Int = (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24) or readUByte().toInt() or (readUByte().toInt() shl 8)
+fun Source.readUIntInverseMiddle(): Int = (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24) or readUByte().toInt() or (readUByte().toInt() shl 8)
 
-fun Source.readUnsignedIntLittle(): Int = (readUByte().toInt()) or (readUByte().toInt() shl 8) or (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24)
+fun Source.readUIntLittle(): Int = (readUByte().toInt()) or (readUByte().toInt() shl 8) or (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24)
 
 fun Source.readSmart(): Int {
     val peek = readUByte().toInt()

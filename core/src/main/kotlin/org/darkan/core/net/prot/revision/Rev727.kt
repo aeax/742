@@ -51,13 +51,13 @@ fun register727() =
         clientProt(opcode = 44, size = 9) { //TODO test
             SendFps(
                 key1 = readIntInverseMiddle(),
-                key2 = readUnsignedIntMiddle(),
+                key2 = readUIntMiddle(),
                 fps = readByteAdd().toInt()
             )
         }
 
         clientProt(opcode = 59, size = 6) {
-            val positionHash = readUnsignedIntLittle()
+            val positionHash = readUIntLittle()
             val mouseHash = readShort()
             MouseClick(
                 mouseButton = mouseHash.toInt() ushr 15,
@@ -68,11 +68,11 @@ fun register727() =
         }
 
         clientProt(opcode = 57, size = 7) {
-            val positionHash = readUnsignedIntLittle()
+            val positionHash = readUIntLittle()
             val flags = readByteAdd()
             MouseButtonClick(
                 mouseButton = flags ushr 1,
-                time = readUnsignedShortLittle(),
+                time = readUShortLittle(),
                 x = positionHash and 0xFFFF,
                 y = positionHash ushr 16,
                 hw = (flags and 1) == 1
@@ -169,24 +169,24 @@ fun register727() =
         clientProt(opcodes = groundItemOpOpcodes, size = 7) { opcode ->
             OpGroundItem(
                 opNum = groundItemOpOpcodes.indexOf(opcode),
-                itemId = readUnsignedShortAddLittle(),
+                itemId = readUShortAddLittle(),
                 forceRun = readBooleanInverse(),
                 y = readUShort().toInt(),
-                x = readUnsignedShortAdd()
+                x = readUShortAdd()
             )
         }
 
         clientProt(opcode = 33, size = 5) {
             val forceRun = readBoolean()
             val x = readUShort().toInt()
-            val y = readUnsignedShortLittle()
+            val y = readUShortLittle()
             Walk(x, y, forceRun, false)
         }
 
         clientProt(opcode = 42, size = 18) {
             val forceRun = readBoolean()
             val x = readUShort().toInt()
-            val y = readUnsignedShortLittle()
+            val y = readUShortLittle()
             readByte()
             readByte() //always -1
             val camAngle = readUShort().toInt()
@@ -203,7 +203,7 @@ fun register727() =
         // Interface interactions
         val ifButtonOpcodes = intArrayOf(96, 27, 68, 9, 72, 19, 23, 21, 22, 81)
         clientProt(opcodes = ifButtonOpcodes, size = 8) { opcode ->
-            val interfaceHash = readUnsignedIntLittle()
+            val interfaceHash = readUIntLittle()
             IfButton(
                 opNum = ifButtonOpcodes.indexOf(opcode),
                 interfaceId = interfaceHash shr 16,
@@ -215,11 +215,11 @@ fun register727() =
 
         clientProt(opcode = 4, size = 16) {
             val toSlot = readShortAddLittle()
-            val fromSlot = readUnsignedShortLittle()
+            val fromSlot = readUShortLittle()
             val toItemId = readShortAddLittle()
-            val toHash = readUnsignedIntLittle()
+            val toHash = readUIntLittle()
             val fromHash = readIntInverseMiddle()
-            val fromItemId = readUnsignedShortLittle()
+            val fromItemId = readUShortLittle()
             IfOnIf(
                 fromInter = fromHash shr 16,
                 toInter = toHash shr 16,
@@ -235,11 +235,11 @@ fun register727() =
         clientProt(opcode = 98, size = 17) {
             val x = readShortAddLittle()
             val forceRun = readBooleanAdd()
-            val objectId = readUnsignedIntMiddle()
+            val objectId = readUIntMiddle()
             val interfaceHash = readInt()
-            val itemId = readUnsignedShortLittle()
+            val itemId = readUShortLittle()
             val slotId = readShortAdd()
-            val y = readUnsignedShortLittle()
+            val y = readUShortLittle()
             IfOnObject(
                 interfaceId = interfaceHash shr 16,
                 componentId = interfaceHash and 0xFFFF,
@@ -259,7 +259,7 @@ fun register727() =
             val forceRun = readBooleanAdd()
             val slotId = readShortAddLittle()
             val y = readShortAddLittle()
-            val x = readUnsignedShortLittle()
+            val x = readUShortLittle()
             IfOnGroundItem(
                 interfaceId = interfaceHash shr 16,
                 componentId = interfaceHash and 0xFFFF,
@@ -274,10 +274,10 @@ fun register727() =
 
         clientProt(opcode = 41, size = 11) {
             val interfaceHash = readIntInverseMiddle()
-            val npcIndex = readUnsignedShortAddLittle()
+            val npcIndex = readUShortAddLittle()
             val forceRun = readBooleanSubtract()
-            val itemId = readUnsignedShortAddLittle()
-            val slotId = readUnsignedShortAdd()
+            val itemId = readUShortAddLittle()
+            val slotId = readUShortAdd()
             IfOnNpc(
                 interfaceId = interfaceHash shr 16,
                 componentId = interfaceHash and 0xFFFF,
@@ -290,10 +290,10 @@ fun register727() =
 
         clientProt(opcode = 13, size = 11) {
             val slotId = readUShort().toInt()
-            val playerIndex = readUnsignedShortLittle()
+            val playerIndex = readUShortLittle()
             val forceRun = readBooleanSubtract()
             val interfaceHash = readIntInverseMiddle()
-            val itemId = readUnsignedShortLittle()
+            val itemId = readUShortLittle()
             IfOnPlayer(
                 interfaceId = interfaceHash shr 16,
                 componentId = interfaceHash and 0xFFFF,
@@ -305,11 +305,11 @@ fun register727() =
         }
 
         clientProt(opcode = 46, size = 12) {
-            val itemId = readUnsignedShortLittle()
-            val y = readUnsignedShortLittle()
+            val itemId = readUShortLittle()
+            val y = readUShortLittle()
             val interfaceHash = readIntInverseMiddle()
             val slotId = readShortAdd()
-            val x = readUnsignedShortLittle()
+            val x = readUShortLittle()
             IfOnTile(
                 interfaceId = interfaceHash shr 16,
                 componentId = interfaceHash and 0xFFFF,
@@ -321,7 +321,7 @@ fun register727() =
         }
 
         clientProt(opcode = 49, size = 6) {
-            val interfaceHash = readUnsignedIntMiddle()
+            val interfaceHash = readUIntMiddle()
             val slotId = readShortAddLittle()
             IfContinue(
                 interfaceId = interfaceHash shr 16,
@@ -332,11 +332,11 @@ fun register727() =
 
         clientProt(opcode = 74, size = 16) {
             val toSlot = readShortAddLittle()
-            val fromSlot = readUnsignedShortLittle()
+            val fromSlot = readUShortLittle()
             val toItemId = readShort().toInt()
             val fromItemId = readShortAddLittle()
-            val fromInterfaceHash = readUnsignedIntMiddle()
-            val toInterfaceHash = readUnsignedIntLittle()
+            val fromInterfaceHash = readUIntMiddle()
+            val toInterfaceHash = readUIntLittle()
             IfDragOntoIf(
                 fromInter = fromInterfaceHash shr 16,
                 toInter = toInterfaceHash shr 16,
@@ -417,7 +417,7 @@ fun register727() =
         clientProt(opcode = 18, size = 4) { SongLoaded(readInt()) }
         clientProt(opcode = 45, size = 1) { CutsceneFinished(readBoolean()) }
         clientProt(opcode = 88, size = 2) { WritePing(readUShort().toInt()) }
-        clientProt(opcode = 5, size = 4) { WorldMapClick(Tile(readUnsignedIntLittle())) }
+        clientProt(opcode = 5, size = 4) { WorldMapClick(Tile(readUIntLittle())) }
 
         clientProt(opcode = 10, size = ProtSize.VarByte) {
             SendPreferences(buildMap {
@@ -576,17 +576,13 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<CamResetHard>(opcode = 66, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<CamResetHard>(opcode = 66)
 
         serverProt<CamShake>(opcode = 71, size = 6) { out ->
             // TODO: Implement serialization
         }
 
-        serverProt<CamResetSmooth>(opcode = 89, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<CamResetSmooth>(opcode = 89)
 
         serverProt<CamForceAngle>(opcode = 118, size = 4) { out ->
             // TODO: Implement serialization
@@ -690,17 +686,11 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<VarclanEnable>(opcode = 45, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<VarclanEnable>(opcode = 45)
 
-        serverProt<VarclanDisable>(opcode = 94, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<VarclanDisable>(opcode = 94)
 
-        serverProt<ClearVarps>(opcode = 100, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<ClearVarps>(opcode = 100)
 
         // Player related protocols
         serverProt<PlayerWeight>(opcode = 14, size = 2) { out ->
@@ -719,9 +709,7 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<FriendlistLoaded>(opcode = 101, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<FriendlistLoaded>(opcode = 101)
 
         serverProt<AddIgnoreReq>(opcode = 138, size = ProtSize.VarByte) { out ->
             // TODO: Implement serialization
@@ -745,13 +733,9 @@ fun register727() =
         }
 
         // Login and system related protocols
-        serverProt<LogoutLobby>(opcode = 9, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<LogoutLobby>(opcode = 9)
 
-        serverProt<LogoutFull>(opcode = 62, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<LogoutFull>(opcode = 62)
 
         serverProt<OpenUrl>(opcode = 16, size = ProtSize.VarShort) { out ->
             // TODO: Implement serialization
@@ -815,13 +799,9 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<TriggerOnDialogAbort>(opcode = 146, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<TriggerOnDialogAbort>(opcode = 146)
 
-        serverProt<KeepAlive>(opcode = 29, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<KeepAlive>(opcode = 29)
 
         serverProt<LoyaltyUpdate>(opcode = 32, size = 5) { out ->
             // TODO: Implement serialization
@@ -843,18 +823,7 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        // Pre-world packets - Note: These might need special handling
-        // since they share the same opcode (2)
-        // Using separate opcode in registration for clarity
-        serverProt<WorldLoginDetails>(opcode = 2000, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
-        }
-
-        serverProt<LobbyLoginDetails>(opcode = 2001, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
-        }
-
-// Interface/UI related
+        // Interface/UI related
         serverProt<IfSetPlayerHead>(opcode = 0, size = 4) { out ->
             // TODO: Implement serialization
         }
@@ -979,7 +948,7 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-// Update and inventory protocols
+        // Update and inventory protocols
         serverProt<UpdateInvPartial>(opcode = 4, size = ProtSize.VarShort) { out ->
             // TODO: Implement serialization
         }
@@ -1084,7 +1053,7 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-// Object and ground item protocols
+        // Object and ground item protocols
         serverProt<GroundItemCount>(opcode = 3, size = 7) { out ->
             // TODO: Implement serialization
         }
@@ -1125,7 +1094,7 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-// Animation related protocols
+        // Animation related protocols
         serverProt<SpotAnim>(opcode = 139, size = 8) { out ->
             // TODO: Implement serialization
         }
@@ -1142,11 +1111,9 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<ResetAllAnimations>(opcode = 122, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<ResetAllAnimations>(opcode = 122)
 
-// Audio related protocols
+        // Audio related protocols
         serverProt<VorbisSound>(opcode = 18, size = 8) { out ->
             // TODO: Implement serialization
         }
@@ -1183,7 +1150,5 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<ResetSounds>(opcode = 120, size = 0) { out ->
-            // TODO: Implement serialization
-        }
+        serverProt<ResetSounds>(opcode = 120)
     }
