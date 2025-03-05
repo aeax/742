@@ -8,29 +8,9 @@ import io.ktor.utils.io.core.remaining
 import kotlinx.io.Source
 import kotlinx.io.readUByte
 import world.gregs.voidps.buffer.write.BufferWriter
+import kotlin.experimental.and
 import kotlin.random.Random
 import kotlin.text.toByteArray
-
-
-fun Source.readUByte(): Int = readByte().toInt() and 0xff
-
-fun Source.readUShort(): Int = (readUByte().toInt() shl 8) or readUByte().toInt()
-
-fun Source.readMedium(): Int {
-    return (readByte().toInt() shl 16) + (readByte().toInt() shl 8) + readByte().toInt()
-}
-
-fun Source.readUMedium(): Int {
-    return (readUByte().toInt() shl 16) + (readUByte().toInt() shl 8) + readUByte().toInt()
-}
-
-fun Source.read40BitLong(): Long {
-    return (readByte().toLong() shl 32) + (readByte().toLong() shl 24) + (readByte().toLong() shl 16) + (readByte().toLong() shl 8) + readByte().toLong()
-}
-
-fun Source.read40BitULong(): Long {
-    return (readUByte().toLong() shl 32) + (readUByte().toLong() shl 24) + (readUByte().toLong() shl 16) + (readUByte().toLong() shl 8) + readUByte().toLong()
-}
 
 suspend fun ByteWriteChannel.writeBoolean(value: Boolean) = writeByte(if (value) 1 else 0)
 
@@ -180,16 +160,6 @@ suspend fun ByteWriteChannel.finish(value: Int) {
     respond(value)
 }
 
-suspend fun ByteReadChannel.readString(): String {
-    val sb = StringBuilder()
-    while (availableForRead > 0) {
-        val byte = readByte()
-        if (byte.toInt() == 0) break
-        sb.append(byte.toInt().toChar())
-    }
-    return sb.toString()
-}
-
 fun Source.readRSString(): String {
     val sb = StringBuilder()
     var b: Int
@@ -225,6 +195,18 @@ fun Source.readFlags(): Int {
     } while ((currValue and 0x80) != 0)
     return result
 }
+
+fun Source.readUByte(): Int = readByte().toInt() and 0xff
+
+fun Source.readUShort(): Int = (readUByte().toInt() shl 8) or readUByte().toInt()
+
+fun Source.readMedium() = (readByte().toInt() shl 16) + (readByte().toInt() shl 8) + readByte().toInt()
+
+fun Source.readUMedium() = (readUByte().toInt() shl 16) + (readUByte().toInt() shl 8) + readUByte().toInt()
+
+fun Source.read40BitLong() = (readByte().toLong() shl 32) + (readByte().toLong() shl 24) + (readByte().toLong() shl 16) + (readByte().toLong() shl 8) + readByte().toLong()
+
+fun Source.read40BitULong() = (readUByte().toLong() shl 32) + (readUByte().toLong() shl 24) + (readUByte().toLong() shl 16) + (readUByte().toLong() shl 8) + readUByte().toLong()
 
 fun Source.readBoolean(): Boolean = readByte().toInt() == 1
 
@@ -266,6 +248,101 @@ fun Source.readUIntInverseMiddle(): Int = (readUByte().toInt() shl 16) or (readU
 fun Source.readUIntLittle(): Int = (readUByte().toInt()) or (readUByte().toInt() shl 8) or (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24)
 
 fun Source.readSmart(): Int {
+    val peek = readUByte().toInt()
+    return if (peek < 128) {
+        peek and 0xFF
+    } else {
+        (peek shl 8 or readUByte().toInt()) - 32768
+    }
+}
+
+suspend fun ByteReadChannel.readRSString(): String {
+    val sb = StringBuilder()
+    var b: Int
+    while (true) {
+        b = readByte().toInt()
+        if (b == 0)
+            break
+        sb.append(b.toChar())
+    }
+    return sb.toString()
+}
+
+suspend fun ByteReadChannel.readJagString(): String {
+    readByte()
+    var s = ""
+    var b: Int
+    while ((readByte().toInt().also { b = it }) != 0)
+        s += b.toChar()
+    return s
+}
+
+suspend fun ByteReadChannel.readFlags(): Int {
+    var result = 0
+    var shift = 0
+    var currValue: Int
+    do {
+        currValue = readByte().toInt() and 0xFF
+        result = result or ((currValue and 0x7F) shl shift)
+        shift += 7
+        if (shift >= 32 && (currValue and 0x80) != 0)
+            error("Variable length quantity is too long")
+    } while ((currValue and 0x80) != 0)
+    return result
+}
+
+suspend fun ByteReadChannel.readUByte(): Int = readByte().toInt() and 0xff
+
+suspend fun ByteReadChannel.readUShort(): Int = (readUByte().toInt() shl 8) or readUByte().toInt()
+
+suspend fun ByteReadChannel.readMedium() = (readByte().toInt() shl 16) + (readByte().toInt() shl 8) + readByte().toInt()
+
+suspend fun ByteReadChannel.readUMedium() = (readUByte().toInt() shl 16) + (readUByte().toInt() shl 8) + readUByte().toInt()
+
+suspend fun ByteReadChannel.read40BitLong() = (readByte().toLong() shl 32) + (readByte().toLong() shl 24) + (readByte().toLong() shl 16) + (readByte().toLong() shl 8) + readByte().toLong()
+
+suspend fun ByteReadChannel.read40BitULong() = (readUByte().toLong() shl 32) + (readUByte().toLong() shl 24) + (readUByte().toLong() shl 16) + (readUByte().toLong() shl 8) + readUByte().toLong()
+
+suspend fun ByteReadChannel.readBoolean(): Boolean = readByte().toInt() == 1
+
+suspend fun ByteReadChannel.readBooleanInverse() = readByteInverse() == 1
+
+suspend fun ByteReadChannel.readBooleanSubtract() = readByteSubtract() == 1
+
+suspend fun ByteReadChannel.readBooleanAdd() = readByteAdd() == 1
+
+suspend fun ByteReadChannel.readByteAdd(): Int = (readByte() - 128).toByte().toInt()
+
+suspend fun ByteReadChannel.readByteInverse(): Int = -readByte()
+
+suspend fun ByteReadChannel.readByteSubtract(): Int = (readByteInverse() + 128).toByte().toInt()
+
+suspend fun ByteReadChannel.readShortAdd(): Int = (readByte().toInt() shl 8) or readByteAdd()
+
+suspend fun ByteReadChannel.readShortAddLittle(): Int = ((readByte().toInt() - 128) and 0xff) or ((readByte().toInt() shl 8) and 0xff00)
+
+suspend fun ByteReadChannel.readUShortAdd(): Int = (readByte().toInt() shl 8) or ((readByte() - 128) and 0xff)
+
+suspend fun ByteReadChannel.readUShortLittle(): Int = readUByte().toInt() or (readUByte().toInt() shl 8)
+
+suspend fun ByteReadChannel.readShortLittle(): Int {
+    val value = readUByte().toInt() or (readUByte().toInt() shl 8)
+    if (value > 0x7FFF)
+        return value - 0x10000
+    return value
+}
+
+suspend fun ByteReadChannel.readUShortAddLittle(): Int = (readByte() - 128 and 0xff) + (readByte().toInt() shl 8 and 0xff00)
+
+suspend fun ByteReadChannel.readUIntMiddle(): Int = (readUByte().toInt() shl 8) or readUByte().toInt() or (readUByte().toInt() shl 24) or (readUByte().toInt() shl 16)
+
+suspend fun ByteReadChannel.readIntInverseMiddle(): Int = (readByte().toInt() shl 16) or (readByte().toInt() shl 24) or readUByte().toInt() or (readByte().toInt() shl 8)
+
+suspend fun ByteReadChannel.readUIntInverseMiddle(): Int = (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24) or readUByte().toInt() or (readUByte().toInt() shl 8)
+
+suspend fun ByteReadChannel.readUIntLittle(): Int = (readUByte().toInt()) or (readUByte().toInt() shl 8) or (readUByte().toInt() shl 16) or (readUByte().toInt() shl 24)
+
+suspend fun ByteReadChannel.readSmart(): Int {
     val peek = readUByte().toInt()
     return if (peek < 128) {
         peek and 0xFF

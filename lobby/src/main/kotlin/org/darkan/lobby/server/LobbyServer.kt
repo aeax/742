@@ -20,7 +20,7 @@ import org.darkan.core.net.RequestOpcode
 import org.darkan.core.net.ResponseOpcode
 import org.darkan.core.net.prot.Codec
 import world.gregs.voidps.buffer.finish
-import world.gregs.voidps.buffer.readString
+import world.gregs.voidps.buffer.readRSString
 import world.gregs.voidps.buffer.respond
 import world.gregs.voidps.cache.secure.RSA
 import java.math.BigInteger
@@ -117,7 +117,7 @@ class LobbyServer(val js5: JS5Server) {
         if (sensitiveData.readUByte().toInt() != 10) return output.finish(ResponseOpcode.BAD_SESSION_ID)
         val isaacKeys = IntArray(4) { sensitiveData.readInt() }
         if (sensitiveData.readLong().toInt() != 0) return output.finish(ResponseOpcode.BAD_SESSION_ID)
-        val password = sensitiveData.readString()
+        val password = sensitiveData.readRSString()
         val unk1 = sensitiveData.readLong()
         val unk2 = sensitiveData.readLong()
         println("$opcode $major $patch $rsaSize $password $unk1 $unk2 ${isaacKeys.contentToString()}")

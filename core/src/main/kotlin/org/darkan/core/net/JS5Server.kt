@@ -21,13 +21,14 @@ class JS5Server(val provider: FileProvider) {
         }
         try {
             val size = input.readByte().toInt() //unused because suspend OP
+
             if (input.readInt() != EnvVars.patchVersion || input.readInt() != EnvVars.majorVersion || input.readInt() != EnvVars.minorVersion) {
                 logTrace("Invalid client version")
                 output.writeByte(ResponseOpcode.GAME_UPDATE)
                 output.flushAndClose()
                 return
             }
-            val token = input.readString()
+            val token = input.readRSString()
             if (token != EnvVars.js5ServerToken) {
                 logTrace("Invalid JS5 server token $token")
                 output.writeByte(ResponseOpcode.BAD_SESSION_ID)

@@ -28,7 +28,7 @@ object Lobby : CoroutineScope {
 
     fun start() {
         logInfo("Starting application services...")
-        cache = Cache.load()
+        cache = Cache.get()
         cacheProvider = FileProvider.load(cache)
         js5Server = JS5Server(cacheProvider)
         startLobbyAPI()
