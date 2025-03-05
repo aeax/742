@@ -2,6 +2,7 @@ package org.darkan.core.net.prot
 
 import org.darkan.core.clientwatch.ReflectionCheck
 import org.darkan.core.type.RegionSize
+import world.gregs.voidps.type.Tile
 
 interface ServerProt
 
@@ -449,33 +450,13 @@ data class ResetSounds(val dummy: Int
 /**
  * Camera related protocols
  */
-data class CamLookAt(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 24, size 6
-) : ServerProt
-
-data class CamMoveTo(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 39, size 6
-) : ServerProt
-
-data class CamRemoveRoof(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 40, size 4
-) : ServerProt
-
-data class CamResetHard(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 66, size 0
-) : ServerProt
-
-data class CamShake(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 71, size 6
-) : ServerProt
-
-data class CamResetSmooth(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 89, size 0
-) : ServerProt
-
-data class CamForceAngle(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 118, size 4
-) : ServerProt
+data class CamLookAt(val viewLocalX: Int, val viewLocalY: Int, val viewZ: Int, val speed1: Int, val speed2: Int) : ServerProt
+data class CamMoveTo(val moveLocalX: Int, val moveLocalY: Int, val moveZ: Int, val speed1: Int, val speed2: Int) : ServerProt
+@JvmInline value class CamRemoveRoof(val tile: Tile) : ServerProt
+@JvmInline value class CamResetHard(val dummy: Int = 0) : ServerProt
+@JvmInline value class CamResetSmooth(val dummy: Int = 0) : ServerProt
+data class CamShake(val slotId: Int, val v1: Int, val v2: Int, val v3: Int, val v4: Int) : ServerProt
+data class CamForceAngle(val angleX: Int, val angleY: Int) : ServerProt
 
 /**
  * Messaging protocols

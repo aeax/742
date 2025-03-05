@@ -565,27 +565,39 @@ fun register727() =
 
         // Camera related protocols
         serverProt<CamLookAt>(opcode = 24, size = 6) { out ->
-            // TODO: Implement serialization
+            out.writeByte(viewLocalX)
+            out.writeShortAdd(viewZ shr 2)
+            out.writeByteAdd(viewLocalY)
+            out.writeByteInverse(speed1)
+            out.writeByteSubtract(speed2)
         }
 
         serverProt<CamMoveTo>(opcode = 39, size = 6) { out ->
-            // TODO: Implement serialization
+            out.writeByte(moveLocalY)
+            out.writeByte(moveLocalX)
+            out.writeByteSubtract(speed1)
+            out.writeShortLittle(moveZ shr 2)
+            out.writeByteAdd(speed2)
         }
 
         serverProt<CamRemoveRoof>(opcode = 40, size = 4) { out ->
-            // TODO: Implement serialization
+            out.writeIntLittle(tile.id)
         }
 
         serverProt<CamResetHard>(opcode = 66)
-
-        serverProt<CamShake>(opcode = 71, size = 6) { out ->
-            // TODO: Implement serialization
-        }
-
         serverProt<CamResetSmooth>(opcode = 89)
 
+        serverProt<CamShake>(opcode = 71, size = 6) { out ->
+            out.writeByteSubtract(v2)
+            out.writeShort(v4)
+            out.writeByteInverse(slotId)
+            out.writeByteInverse(v1)
+            out.writeByteSubtract(v3)
+        }
+
         serverProt<CamForceAngle>(opcode = 118, size = 4) { out ->
-            // TODO: Implement serialization
+            out.writeShortAdd(angleY)
+            out.writeShortAddLittle(angleX)
         }
 
         // Messaging protocols
@@ -957,10 +969,6 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<NpcUpdate>(opcode = 6, size = ProtSize.VarShort) { out ->
-            // TODO: Implement serialization
-        }
-
         serverProt<UpdateZoneFullFollows>(opcode = 15, size = 3) { out ->
             // TODO: Implement serialization
         }
@@ -982,6 +990,10 @@ fun register727() =
         }
 
         serverProt<NpcUpdateLarge>(opcode = 47, size = ProtSize.VarShort) { out ->
+            // TODO: Implement serialization
+        }
+
+        serverProt<NpcUpdate>(opcode = 6, size = ProtSize.VarShort) { out ->
             // TODO: Implement serialization
         }
 
