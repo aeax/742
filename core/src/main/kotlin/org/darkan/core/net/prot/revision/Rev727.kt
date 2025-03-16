@@ -601,20 +601,33 @@ fun register727() =
         }
 
         // Messaging protocols
-        serverProt<MessagePrivateEcho>(opcode = 10, size = ProtSize.VarShort) { out ->
-            // TODO: Implement serialization
+        serverProt<MessagePrivate>(opcode = 10, size = ProtSize.VarShort) { out ->
+            out.writeName(displayName, prevDisplayName)
+            out.writeHashedMessageTimestamp(message)
+            out.writeByte(crown)
+            out.writeBytes(Cache.huffman.compress(message))
         }
 
-        serverProt<MessageQuickChatPrivate>(opcode = 22, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+        serverProt<MessageQuickChatPrivateEcho>(opcode = 22, size = ProtSize.VarByte) { out ->
+            out.writeString(senderDisplayName)
+            out.writeShort(message.fileId)
+            message.data?.let { out.writeBytes(it) }
         }
 
         serverProt<MessageFriendsChat>(opcode = 25, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeName(displayName, prevDisplayName)
+            out.writeLong(chatName)
+            out.writeHashedMessageTimestamp(message)
+            out.writeByte(crown)
+            out.writeBytes(Cache.huffman.compress(message))
         }
 
-        serverProt<MessageQuickChatPrivateEcho>(opcode = 31, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+        serverProt<MessageQuickChatPrivate>(opcode = 31, size = ProtSize.VarByte) { out ->
+            out.writeName(displayName, prevDisplayName)
+            out.writeHashedQCMessageTimestamp(message.fileId)
+            out.writeByte(crown)
+            out.writeShort(message.fileId)
+            message.data?.let { out.writeBytes(it) }
         }
 
         serverProt<MessageClanChannel>(opcode = 81, size = ProtSize.VarByte) { out ->
@@ -625,8 +638,9 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<SendPrivateMessage>(opcode = 92, size = ProtSize.VarShort) { out ->
-            // TODO: Implement serialization
+        serverProt<MessagePrivateEcho>(opcode = 92, size = ProtSize.VarShort) { out ->
+            out.writeString(senderDisplayName)
+            out.writeBytes(Cache.huffman.compress(message))
         }
 
         serverProt<MessageQuickChatFriendsChat>(opcode = 142, size = ProtSize.VarByte) { out ->
@@ -753,8 +767,44 @@ fun register727() =
             // TODO: Implement serialization
         }
 
-        serverProt<WorldList>(opcode = 103, size = ProtSize.VarShort) { out ->
-            // TODO: Implement serialization
+        serverProt<WorldListPacket>(opcode = 103, size = ProtSize.VarShort) { out ->
+            val worlds = worldList.getWorldArray()
+            out.writeByte(1)
+            out.writeByte(if (refreshOnClient) 2 else 0)
+            if (!refreshOnlyPlayerCounts) {
+                out.writeByte(1)
+                val size: Int = worlds.size
+                out.writeSmart(size)
+                for (world in worlds) {
+                    out.writeSmart(world.metadata.country.id)
+                    out.writeJagString(world.metadata.activity)
+                }
+                out.writeSmart(0)
+                out.writeSmart(worldList.maxWorlds)
+                out.writeSmart(size)
+                for (world in worlds) {
+                    out.writeSmart(world.metadata.number)
+                    out.writeByte(world.index)
+                    var flags = 0
+                    if (world.metadata.members) flags = flags or 0x1
+                    if (world.metadata.quickchat) flags = flags or 0x2
+                    if (world.metadata.pvp) flags = flags or 0x4
+                    if (world.metadata.lootShare) flags = flags or 0x8
+                    if (world.metadata.highlighted) flags = flags or 0x16
+                    if (world.metadata.port != 43595) flags = flags or 0x40000000 // Custom port flag
+
+                    out.writeInt(flags)
+                    out.writeJagString("")
+                    out.writeJagString(world.metadata.ipAddress)
+                    if (world.metadata.port != 43595) out.writeInt(world.metadata.port)
+                }
+                out.writeInt(worldList.revision)
+            } else
+                out.writeByte(0)
+            for (world in worlds) {
+                out.writeSmart(world.metadata.number)
+                out.writeShort(if (world.offline) -1 else world.playersOnline)
+            }
         }
 
         serverProt<IdentifyHostName>(opcode = 147, size = 4) { out ->

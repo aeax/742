@@ -1,7 +1,9 @@
 package org.darkan.core.net.prot
 
 import org.darkan.core.clientwatch.ReflectionCheck
+import org.darkan.core.social.QuickChatMessage
 import org.darkan.core.type.RegionSize
+import org.darkan.core.worldlist.WorldList
 import world.gregs.voidps.type.Tile
 
 interface ServerProt
@@ -461,21 +463,28 @@ data class CamForceAngle(val angleX: Int, val angleY: Int) : ServerProt
 /**
  * Messaging protocols
  */
-data class MessagePrivateEcho(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 10, size -2
-) : ServerProt
+data class MessagePrivate(
+    val crown: Int,
+    val displayName: String,
+    val prevDisplayName: String,
+    val uncheckedMessage: String
+) : ServerProt {
+    val message: String = uncheckedMessage.take(210)
+}
 
-data class MessageQuickChatPrivate(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 22, size -1
-) : ServerProt
+data class MessageQuickChatPrivateEcho(val senderDisplayName: String, val message: QuickChatMessage) : ServerProt
 
-data class MessageFriendsChat(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 25, size -1
-) : ServerProt
+data class MessageFriendsChat(
+    val crown: Int,
+    val displayName: String,
+    val prevDisplayName: String,
+    val chatName: String,
+    val uncheckedMessage: String
+) : ServerProt {
+    val message: String = uncheckedMessage.take(210)
+}
 
-data class MessageQuickChatPrivateEcho(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 31, size -1
-) : ServerProt
+data class MessageQuickChatPrivate(val crown: Int, val displayName: String, val prevDisplayName: String, val message: QuickChatMessage) : ServerProt
 
 data class MessageClanChannel(val dummy: Int
     // TODO: Add fields based on analysis of opcode 81, size -1
@@ -485,9 +494,9 @@ data class MessageQuickChatPlayerGroup(val dummy: Int
     // TODO: Add fields based on analysis of opcode 83, size -1
 ) : ServerProt
 
-data class SendPrivateMessage(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 92, size -2
-) : ServerProt
+data class MessagePrivateEcho(val senderDisplayName: String, val uncheckedMessage: String) : ServerProt {
+    val message: String = uncheckedMessage.take(210)
+}
 
 data class MessageQuickChatFriendsChat(val dummy: Int
     // TODO: Add fields based on analysis of opcode 142, size -1
@@ -633,9 +642,7 @@ data class OpenUrl(val dummy: Int
     // TODO: Add fields based on analysis of opcode 16, size -2
 ) : ServerProt
 
-data class WorldList(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 103, size -2
-) : ServerProt
+data class WorldListPacket(val worldList: WorldList, val refreshOnClient: Boolean, val refreshOnlyPlayerCounts: Boolean) : ServerProt
 
 data class IdentifyHostName(val dummy: Int
     // TODO: Add fields based on analysis of opcode 147, size 4

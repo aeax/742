@@ -1,15 +1,14 @@
-@file:OptIn(ExperimentalUnsignedTypes::class)
-
 package world.gregs.voidps.buffer
 
 import io.ktor.utils.io.*
 import io.ktor.utils.io.bits.*
 import io.ktor.utils.io.core.remaining
+import io.ktor.utils.io.writeShort
 import kotlinx.io.Source
 import kotlinx.io.readUByte
+import org.darkan.core.currentTimeTicks
+import org.darkan.core.hashToShort
 import world.gregs.voidps.buffer.write.BufferWriter
-import kotlin.experimental.and
-import kotlin.random.Random
 import kotlin.text.toByteArray
 
 suspend fun ByteWriteChannel.writeBoolean(value: Boolean) = writeByte(if (value) 1 else 0)
@@ -104,6 +103,26 @@ suspend fun ByteWriteChannel.writeString(value: String?) {
     if (value != null)
         writeFully(value.toByteArray())
     writeByte(0)
+}
+
+suspend fun ByteWriteChannel.writeJagString(value: String?) {
+    writeByte(0)
+    writeString(value)
+}
+
+/**
+ * TODO
+ * absolutely zero idea what this function actually should do
+ * if anyone knows, please let me know
+ */
+suspend fun ByteWriteChannel.writeHashedMessageTimestamp(message: String) {
+    writeShort(message.hashToShort())
+    writeMedium((currentTimeTicks and 0xFFFFFF).toInt())
+}
+
+suspend fun ByteWriteChannel.writeHashedQCMessageTimestamp(messageId: Int) {
+    writeShort(messageId.toShort())
+    writeMedium((currentTimeTicks and 0xFFFFFF).toInt())
 }
 
 class BitAccessor {
@@ -270,11 +289,7 @@ suspend fun ByteReadChannel.readRSString(): String {
 
 suspend fun ByteReadChannel.readJagString(): String {
     readByte()
-    var s = ""
-    var b: Int
-    while ((readByte().toInt().also { b = it }) != 0)
-        s += b.toChar()
-    return s
+    return readRSString()
 }
 
 suspend fun ByteReadChannel.readFlags(): Int {
@@ -355,17 +370,8 @@ suspend fun ByteWriteChannel.writeName(displayName: String, responseName: String
     val different = displayName != responseName
     writeBoolean(different)
     writeString(displayName)
-    if (different) {
+    if (different)
         writeString(responseName)
-    }
-}
-
-internal var random: Random = Random.Default
-
-suspend fun ByteWriteChannel.writeRandom() {
-    // TODO shouldn't this be a hash? Of the username and message?
-    writeShort(random.nextInt())
-    writeMedium(random.nextInt())
 }
 
 /**
