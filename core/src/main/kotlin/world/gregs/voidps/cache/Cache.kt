@@ -12,6 +12,8 @@ interface Cache {
 
     fun indices(): IntArray
 
+    fun indexCrcs(): IntArray
+
     fun sector(index: Int, archive: Int): ByteArray?
 
     fun archives(index: Int): IntArray

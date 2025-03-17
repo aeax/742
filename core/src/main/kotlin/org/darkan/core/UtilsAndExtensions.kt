@@ -1,5 +1,7 @@
 package org.darkan.core
 
+import java.util.Locale
+
 object UtilsAndExtensions {
 
 }
@@ -15,3 +17,16 @@ fun String.hashToShort(): Short {
 }
 
 val currentTimeTicks get() = System.currentTimeMillis() / 600L
+
+fun String.formatPlayerNameForProtocol(): String {
+    return this.lowercase().replace(" ", "_") ?: ""
+}
+
+fun String.formatPlayerNameForDisplay(): String {
+    return this.replace("_", " ")
+        .lowercase()
+        .split(" ")
+        .joinToString(" ") { word ->
+            replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        }
+}

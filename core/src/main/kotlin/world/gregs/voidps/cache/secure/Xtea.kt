@@ -2,6 +2,11 @@
 
 package world.gregs.voidps.cache.secure
 
+import io.ktor.utils.io.core.ByteReadPacket
+import io.ktor.utils.io.core.readBytes
+import io.ktor.utils.io.core.remaining
+import kotlinx.io.Source
+import kotlinx.io.readByteArray
 import java.nio.ByteBuffer
 
 object Xtea {
@@ -76,4 +81,10 @@ object Xtea {
         buffer[index + 2] = (value shr 8).toByte()
         buffer[index + 3] = value.toByte()
     }
+}
+
+fun Source.decryptXtea(isaacKeys: IntArray): Source {
+    val remaining = readByteArray(remaining.toInt())
+    Xtea.decipher(remaining, isaacKeys)
+    return ByteReadPacket(remaining)
 }

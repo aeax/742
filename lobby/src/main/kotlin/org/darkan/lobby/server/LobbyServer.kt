@@ -15,15 +15,15 @@ import org.darkan.core.EnvVars
 import org.darkan.core.Logger.logError
 import org.darkan.core.Logger.logInfo
 import org.darkan.core.Logger.logTrace
-import org.darkan.core.net.JS5Server
-import org.darkan.core.net.RequestOpcode
-import org.darkan.core.net.ResponseOpcode
+import org.darkan.core.formatPlayerNameForProtocol
+import org.darkan.core.net.*
 import org.darkan.core.net.prot.Codec
-import world.gregs.voidps.buffer.finish
-import world.gregs.voidps.buffer.readRSString
-import world.gregs.voidps.buffer.respond
+import world.gregs.voidps.cache.Cache
+import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.secure.RSA
+import world.gregs.voidps.cache.secure.decryptXtea
 import java.math.BigInteger
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 class LobbyServer(val js5: JS5Server) {
@@ -35,6 +35,8 @@ class LobbyServer(val js5: JS5Server) {
 
     private val js5RsaMod = BigInteger(EnvVars.js5RsaModulus)
     private val js5RsaExp = BigInteger(EnvVars.js5RsaExponent)
+
+    internal val online: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     suspend fun start(): Job {
         val executor = Executors.newCachedThreadPool()
@@ -120,6 +122,57 @@ class LobbyServer(val js5: JS5Server) {
         val password = sensitiveData.readRSString()
         val unk1 = sensitiveData.readLong()
         val unk2 = sensitiveData.readLong()
-        println("$opcode $major $patch $rsaSize $password $unk1 $unk2 ${isaacKeys.contentToString()}")
+        val xtea = packet.decryptXtea(isaacKeys)
+        val stringUsername = xtea.readBoolean()
+        val username = (if (stringUsername) xtea.readRSString() else xtea.readLong().toRSString()).formatPlayerNameForProtocol()
+        val gameType = xtea.readUByte()
+        val language = xtea.readUByte()
+        xtea.skip(24)
+        val loginServerToken = xtea.readRSString()
+        val prefSize = xtea.readUByte().toInt()
+        val prefs = IntArray(prefSize)
+        for (i in prefs.indices) prefs[i] = xtea.readUByte().toInt()
+        val clientKey = xtea.readRSString()
+        val unknown1 = xtea.readInt()
+        val unknown2 = xtea.readInt()
+        val js5ServerToken = xtea.readRSString()
+
+        if (loginServerToken != EnvVars.loginServerToken) {
+            logError("Login server token mismatch: ${EnvVars.loginServerToken}, $loginServerToken from $username")
+            //return output.finish(ResponseOpcode.GAME_UPDATE)
+        }
+
+        if (js5ServerToken != EnvVars.js5ServerToken) {
+            logError("JS5 server token mismatch: ${EnvVars.js5ServerToken}, $js5ServerToken from $username")
+            //return output.finish(ResponseOpcode.GAME_UPDATE)
+        }
+
+        if (clientKey != EnvVars.clientKey) {
+            logError("Client key mismatch: ${EnvVars.clientKey}, $clientKey from $username")
+            //return output.finish(ResponseOpcode.GAME_UPDATE)
+        }
+
+        for (index in 0..<Cache.get().indexCount()) {
+            if (index > 35) break
+            val crc = Cache.get().indexCrcs()[index].toInt()
+            val receivedCRC = xtea.readInt()
+            if (crc != receivedCRC && index < 32) {
+                logError("CRC mismatch: $crc, $receivedCRC from $username")
+                return output.finish(ResponseOpcode.GAME_UPDATE)
+            }
+        }
+        logInfo("Logging in $username")
+        val session = initSession(output, isaacKeys, ip)
+        session.onDisconnected {
+            online.remove(username)
+        }
+    }
+
+    private fun initSession(write: ByteWriteChannel, isaacKeys: IntArray, hostname: String): Session {
+        val inCipher = Isaac(isaacKeys)
+        for (i in isaacKeys.indices)
+            isaacKeys[i] += 50
+        val outCipher = Isaac(isaacKeys)
+        return Session(write, inCipher, outCipher, hostname)
     }
 }

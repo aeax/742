@@ -377,6 +377,10 @@ data class CreateObject(val dummy: Int
     // TODO: Add fields based on analysis of opcode 117, size 6
 ) : ServerProt
 
+data class TileMessage(val dummy: Int
+    // TODO: Add fields based on analysis of opcode 114, size -1
+) : ServerProt
+
 data class CustomizeObject(val dummy: Int
     // TODO: Add fields based on analysis of opcode 84, size -1
 ) : ServerProt
@@ -483,10 +487,6 @@ data class MessageQuickChatPlayerGroup(val crown: Int, val displayName: String, 
 data class MessagePublic(val pid: Int, val messageIcon: Int, val message: ChatMessage) : ServerProt
 
 data class GameMessage(val type: ChatMessageType, val message: String, val targetDisplayName: String? = null, val effectFlags: Int = 0) : ServerProt
-
-data class TileMessage(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 114, size -1
-) : ServerProt
 
 /**
  * Variable related protocols

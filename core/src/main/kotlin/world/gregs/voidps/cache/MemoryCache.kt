@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import org.darkan.core.Logger.logTrace
 import org.darkan.core.Logger.logWarn
 import world.gregs.voidps.cache.compress.DecompressionContext
+import world.gregs.voidps.cache.secure.CRC
 import world.gregs.voidps.cache.secure.VersionTableBuilder
 import world.gregs.voidps.cache.secure.Whirlpool
 import java.io.File
@@ -26,6 +27,13 @@ class MemoryCache(indexCount: Int) : ReadOnlyCache(indexCount) {
     val sectors: Array<Array<ByteArray?>?> = arrayOfNulls(indexCount)
     val index255: Array<ByteArray?> = arrayOfNulls(indexCount)
 
+    private val indexCrcs by lazy {
+        indices.map {
+            val data = sector(255, it) ?: return@map 0
+            CRC.calculate(data, 0, data.size)
+        }.toIntArray()
+    }
+
     override fun sector(index: Int, archive: Int): ByteArray? {
         if (index == 255) {
             if (archive >= index255.size) {
@@ -42,6 +50,8 @@ class MemoryCache(indexCount: Int) : ReadOnlyCache(indexCount) {
         }
         return archives[archive]
     }
+
+    override fun indexCrcs() = indexCrcs
 
     override fun data(index: Int, archive: Int, file: Int, xtea: IntArray?): ByteArray? {
         if (index >= data.size) {

@@ -3,7 +3,6 @@ package world.gregs.voidps.buffer
 import io.ktor.utils.io.*
 import io.ktor.utils.io.bits.*
 import io.ktor.utils.io.core.remaining
-import io.ktor.utils.io.writeShort
 import kotlinx.io.Source
 import kotlinx.io.readUByte
 import org.darkan.core.currentTimeTicks
@@ -173,10 +172,12 @@ suspend fun ByteWriteChannel.bitAccess(block: BitAccessor.() -> Unit) {
 
 suspend fun ByteWriteChannel.respond(value: Int) {
     writeByte(value)
+    flush()
 }
 
 suspend fun ByteWriteChannel.finish(value: Int) {
     respond(value)
+    flushAndClose()
 }
 
 fun Source.readRSString(): String {
@@ -391,4 +392,20 @@ suspend fun ByteWriteChannel.writeLong(string: String) {
     while (long % 37L == 0L && long != 0L)
         long /= 37L
     writeLong(long)
+}
+
+val VALID_CHARS = charArrayOf('_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+
+fun Long.toRSString(): String {
+    val result = CharArray(12)
+    var value = this
+    var length = 0
+
+    while (value != 0L) {
+        val remainder = value % 37L
+        value /= 37L
+        result[11 - length++] = VALID_CHARS[remainder.toInt()]
+    }
+
+    return String(result, 12 - length, length)
 }
