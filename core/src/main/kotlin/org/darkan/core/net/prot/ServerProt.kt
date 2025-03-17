@@ -1,7 +1,9 @@
 package org.darkan.core.net.prot
 
 import org.darkan.core.clientwatch.ReflectionCheck
+import org.darkan.core.social.ChatMessage
 import org.darkan.core.social.QuickChatMessage
+import org.darkan.core.type.ChatMessageType
 import org.darkan.core.type.RegionSize
 import org.darkan.core.worldlist.WorldList
 import world.gregs.voidps.type.Tile
@@ -463,60 +465,24 @@ data class CamForceAngle(val angleX: Int, val angleY: Int) : ServerProt
 /**
  * Messaging protocols
  */
-data class MessagePrivate(
-    val crown: Int,
-    val displayName: String,
-    val prevDisplayName: String,
-    val uncheckedMessage: String
-) : ServerProt {
-    val message: String = uncheckedMessage.take(210)
-}
-
-data class MessageQuickChatPrivateEcho(val senderDisplayName: String, val message: QuickChatMessage) : ServerProt
-
-data class MessageFriendsChat(
-    val crown: Int,
-    val displayName: String,
-    val prevDisplayName: String,
-    val chatName: String,
-    val uncheckedMessage: String
-) : ServerProt {
-    val message: String = uncheckedMessage.take(210)
-}
+data class MessagePrivate(val crown: Int, val displayName: String, val prevDisplayName: String, val message: String) : ServerProt
+data class MessagePrivateEcho(val senderDisplayName: String, val message: String) : ServerProt
 
 data class MessageQuickChatPrivate(val crown: Int, val displayName: String, val prevDisplayName: String, val message: QuickChatMessage) : ServerProt
+data class MessageQuickChatPrivateEcho(val senderDisplayName: String, val message: QuickChatMessage) : ServerProt
 
-data class MessageClanChannel(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 81, size -1
-) : ServerProt
+data class MessageFriendsChat(val crown: Int, val displayName: String, val prevDisplayName: String, val chatName: String, val message: String) : ServerProt
+data class MessageQuickChatFriendsChat(val chatName: String, val crown: Int, val displayName: String, val prevDisplayName: String, val message: QuickChatMessage) : ServerProt
 
-data class MessageQuickChatPlayerGroup(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 83, size -1
-) : ServerProt
+data class MessageClanChannel(val guest: Boolean, val crown: Int, val displayName: String, val message: String) : ServerProt
+data class MessageQuickChatClanChannel(val guest: Boolean, val crown: Int, val displayName: String, val message: QuickChatMessage) : ServerProt
 
-data class MessagePrivateEcho(val senderDisplayName: String, val uncheckedMessage: String) : ServerProt {
-    val message: String = uncheckedMessage.take(210)
-}
+data class MessagePlayerGroup(val crown: Int, val displayName: String, val prevDisplayName: String, val message: String) : ServerProt
+data class MessageQuickChatPlayerGroup(val crown: Int, val displayName: String, val prevDisplayName: String, val message: QuickChatMessage) : ServerProt
 
-data class MessageQuickChatFriendsChat(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 142, size -1
-) : ServerProt
+data class MessagePublic(val pid: Int, val messageIcon: Int, val message: ChatMessage) : ServerProt
 
-data class MessageQuickChatClanChannel(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 131, size -1
-) : ServerProt
-
-data class MessagePlayerGroup(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 133, size -1
-) : ServerProt
-
-data class MessagePublic(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 152, size -1
-) : ServerProt
-
-data class GameMessage(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 160, size -1
-) : ServerProt
+data class GameMessage(val type: ChatMessageType, val message: String, val targetDisplayName: String? = null, val effectFlags: Int = 0) : ServerProt
 
 data class TileMessage(val dummy: Int
     // TODO: Add fields based on analysis of opcode 114, size -1
@@ -525,61 +491,26 @@ data class TileMessage(val dummy: Int
 /**
  * Variable related protocols
  */
-data class VarpLarge(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 8, size 6
-) : ServerProt
+data class VarpSmall(val id: Int, val value: Int) : ServerProt
+data class VarpLarge(val id: Int, val value: Int) : ServerProt
 
-data class ClientSetVarcLarge(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 12, size 6
-) : ServerProt
+data class ClientSetVarcSmall(val id: Int, val value: Int) : ServerProt
+data class ClientSetVarcLarge(val id: Int, val value: Int) : ServerProt
 
-data class ClientSetVarcSmall(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 116, size 3
-) : ServerProt
+data class VarbitSmall(val id: Int, val value: Int) : ServerProt
+data class VarbitLarge(val id: Int, val value: Int) : ServerProt
 
-data class VarbitSmall(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 68, size 3
-) : ServerProt
+data class ClientSetVarcStrSmall(val id: Int, val value: String) : ServerProt
+data class ClientSetVarcStrLarge(val id: Int, val value: String) : ServerProt
 
-data class VarbitLarge(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 108, size 6
-) : ServerProt
+data class VarclanSetLong(val id: Int, val value: Long) : ServerProt
+data class VarclanSetByte(val id: Int, val value: Int) : ServerProt
+data class VarclanSetInt(val id: Int, val value: Int) : ServerProt
+data class VarclanSetString(val id: Int, val value: String) : ServerProt
 
-data class VarpSmall(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 115, size 3
-) : ServerProt
-
-data class ClientSetVarcStrSmall(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 54, size -1
-) : ServerProt
-
-data class ClientSetVarcStrLarge(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 119, size -2
-) : ServerProt
-
-data class VarclanSetLong(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 26, size 10
-) : ServerProt
-
-data class VarclanSetByte(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 123, size 3
-) : ServerProt
-
-data class VarclanSetInt(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 141, size 6
-) : ServerProt
-
-data class VarclanEnable(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 45, size 0
-) : ServerProt
-
-data class VarclanDisable(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 94, size 0
-) : ServerProt
-
-data class ClearVarps(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 100, size 0
-) : ServerProt
+@JvmInline value class VarclanEnable(val dummy: Int = 0) : ServerProt
+@JvmInline value class VarclanDisable(val dummy: Int = 0) : ServerProt
+@JvmInline value class ClearVarps(val dummy: Int = 0) : ServerProt
 
 /**
  * Player related protocols
@@ -621,10 +552,6 @@ data class SetTarget(val dummy: Int
  */
 data class FriendsChatChannel(val dummy: Int
     // TODO: Add fields based on analysis of opcode 127, size -2
-) : ServerProt
-
-data class SetClanString(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 50, size -1
 ) : ServerProt
 
 /**

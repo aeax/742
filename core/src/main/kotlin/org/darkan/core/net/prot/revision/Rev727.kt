@@ -1,7 +1,7 @@
 package org.darkan.core.net.prot.revision
 
+import io.ktor.utils.io.*
 import io.ktor.utils.io.core.remaining
-import io.ktor.utils.io.writeInt
 import kotlinx.io.readByteArray
 import kotlinx.io.readUByte
 import kotlinx.io.readUShort
@@ -10,6 +10,7 @@ import org.darkan.core.clientwatch.MouseTrailStep.Type
 import org.darkan.core.clientwatch.ReflectionCheckType
 import org.darkan.core.clientwatch.ReflectionResponseCode
 import org.darkan.core.net.prot.*
+import org.darkan.core.social.QuickChatMessage
 import org.darkan.core.type.Preference
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.Cache
@@ -603,9 +604,9 @@ fun register727() =
         // Messaging protocols
         serverProt<MessagePrivate>(opcode = 10, size = ProtSize.VarShort) { out ->
             out.writeName(displayName, prevDisplayName)
-            out.writeHashedMessageTimestamp(message)
+            out.writeHashedMessageTimestamp(message.take(210))
             out.writeByte(crown)
-            out.writeBytes(Cache.huffman.compress(message))
+            out.writeBytes(Cache.huffman.compress(message.take(210)))
         }
 
         serverProt<MessageQuickChatPrivateEcho>(opcode = 22, size = ProtSize.VarByte) { out ->
@@ -617,9 +618,9 @@ fun register727() =
         serverProt<MessageFriendsChat>(opcode = 25, size = ProtSize.VarByte) { out ->
             out.writeName(displayName, prevDisplayName)
             out.writeLong(chatName)
-            out.writeHashedMessageTimestamp(message)
+            out.writeHashedMessageTimestamp(message.take(210))
             out.writeByte(crown)
-            out.writeBytes(Cache.huffman.compress(message))
+            out.writeBytes(Cache.huffman.compress(message.take(210)))
         }
 
         serverProt<MessageQuickChatPrivate>(opcode = 31, size = ProtSize.VarByte) { out ->
@@ -631,85 +632,135 @@ fun register727() =
         }
 
         serverProt<MessageClanChannel>(opcode = 81, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeBoolean(!guest)
+            out.writeString(displayName)
+            out.writeHashedMessageTimestamp(message.take(210))
+            out.writeByte(crown)
+            out.writeBytes(Cache.huffman.compress(message.take(210)))
         }
 
         serverProt<MessageQuickChatPlayerGroup>(opcode = 83, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeName(displayName, prevDisplayName)
+            out.writeByte(crown)
+            out.writeShort(message.fileId)
+            message.data?.let { out.writeBytes(it) }
         }
 
         serverProt<MessagePrivateEcho>(opcode = 92, size = ProtSize.VarShort) { out ->
             out.writeString(senderDisplayName)
-            out.writeBytes(Cache.huffman.compress(message))
+            out.writeBytes(Cache.huffman.compress(message.take(210)))
         }
 
         serverProt<MessageQuickChatFriendsChat>(opcode = 142, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeName(displayName, prevDisplayName)
+            out.writeLong(chatName)
+            out.writeHashedQCMessageTimestamp(message.fileId)
+            out.writeByte(crown)
+            out.writeShort(message.fileId)
+            message.data?.let { out.writeBytes(it) }
         }
 
         serverProt<MessageQuickChatClanChannel>(opcode = 131, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeBoolean(!guest)
+            out.writeString(displayName)
+            out.writeHashedQCMessageTimestamp(message.fileId)
+            out.writeByte(crown)
+            out.writeShort(message.fileId)
+            message.data?.let { out.writeBytes(it) }
         }
 
         serverProt<MessagePlayerGroup>(opcode = 133, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeName(displayName, prevDisplayName)
+            out.writeByte(crown)
+            out.writeBytes(Cache.huffman.compress(message.take(210)))
         }
 
         serverProt<MessagePublic>(opcode = 152, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeShort(pid)
+            out.writeShort(message.effects)
+            out.writeByte(messageIcon)
+            if (message is QuickChatMessage) {
+                out.writeShort(message.fileId)
+                message.data?.let { out.writeBytes(it) }
+            } else
+                out.writeBytes(Cache.huffman.compress(message.message.take(210)))
         }
 
         serverProt<GameMessage>(opcode = 160, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
-        }
-
-        serverProt<TileMessage>(opcode = 114, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            var maskData = 0
+            if (targetDisplayName != null) {
+                maskData = maskData or 0x1
+                //maskData |= 0x2;
+            }
+            out.writeSmart(type.value)
+            out.writeInt(effectFlags)
+            out.writeByte(maskData)
+            if (targetDisplayName != null) {
+                out.writeString(targetDisplayName)
+                //stream.writeString(target.getDisplayName());
+            }
+            out.writeString(message.take(248))
         }
 
         // Variable related protocols
-        serverProt<VarpLarge>(opcode = 8, size = 6) { out ->
-            // TODO: Implement serialization
+        serverProt<VarpSmall>(opcode = 115, size = 3) { out ->
+            out.writeByte(value)
+            out.writeShortAddLittle(id)
         }
 
-        serverProt<ClientSetVarcLarge>(opcode = 12, size = 6) { out ->
-            // TODO: Implement serialization
+        serverProt<VarpLarge>(opcode = 8, size = 6) { out ->
+            out.writeIntInverseMiddle(value)
+            out.writeShortAddLittle(id)
         }
 
         serverProt<ClientSetVarcSmall>(opcode = 116, size = 3) { out ->
-            // TODO: Implement serialization
+            out.writeByteSubtract(value)
+            out.writeShortLittle(id)
+        }
+
+        serverProt<ClientSetVarcLarge>(opcode = 12, size = 6) { out ->
+            out.writeShortLittle(id)
+            out.writeIntInverseMiddle(value)
         }
 
         serverProt<VarbitSmall>(opcode = 68, size = 3) { out ->
-            // TODO: Implement serialization
+            out.writeShort(id)
+            out.writeByteAdd(value)
         }
 
         serverProt<VarbitLarge>(opcode = 108, size = 6) { out ->
-            // TODO: Implement serialization
-        }
-
-        serverProt<VarpSmall>(opcode = 115, size = 3) { out ->
-            // TODO: Implement serialization
+            out.writeIntInverseMiddle(value)
+            out.writeShortAdd(id)
         }
 
         serverProt<ClientSetVarcStrSmall>(opcode = 54, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeString(value)
+            out.writeShortAddLittle(id)
         }
 
         serverProt<ClientSetVarcStrLarge>(opcode = 119, size = ProtSize.VarShort) { out ->
-            // TODO: Implement serialization
+            out.writeShortLittle(id)
+            out.writeString(value)
         }
 
         serverProt<VarclanSetLong>(opcode = 26, size = 10) { out ->
-            // TODO: Implement serialization
+            out.writeShort(id)
+            out.writeLong(value)
         }
 
         serverProt<VarclanSetByte>(opcode = 123, size = 3) { out ->
-            // TODO: Implement serialization
+            out.writeShort(id)
+            out.writeByte(value)
         }
 
         serverProt<VarclanSetInt>(opcode = 141, size = 6) { out ->
-            // TODO: Implement serialization
+            out.writeShort(id)
+            out.writeInt(value)
+        }
+
+        serverProt<VarclanSetString>(opcode = 50, size = ProtSize.VarByte) { out ->
+            out.writeShort(id)
+            out.writeString(value)
         }
 
         serverProt<VarclanEnable>(opcode = 45)
@@ -751,10 +802,6 @@ fun register727() =
 
         // Friend and clan chat protocols
         serverProt<FriendsChatChannel>(opcode = 127, size = ProtSize.VarShort) { out ->
-            // TODO: Implement serialization
-        }
-
-        serverProt<SetClanString>(opcode = 50, size = ProtSize.VarByte) { out ->
             // TODO: Implement serialization
         }
 
@@ -1020,6 +1067,10 @@ fun register727() =
         }
 
         serverProt<UpdateZoneFullFollows>(opcode = 15, size = 3) { out ->
+            // TODO: Implement serialization
+        }
+
+        serverProt<TileMessage>(opcode = 114, size = ProtSize.VarByte) { out ->
             // TODO: Implement serialization
         }
 
