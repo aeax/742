@@ -32,6 +32,15 @@ object EnvVars {
     val worldCycleMillis: Long = worldCycleNanos / 1000000L
     val cacheThreadUsage: Double = dotenv.get("CACHE_THREAD_USAGE", "1.0").toDouble()
 
+    val cryptoArgon2Memory: Int = dotenv.get("CRYPTO_ARGON2_MEMORY", "65536").toInt() // 64mb (1048576) for 1GB in KB
+    val cryptoArgon2Iterations: Int = dotenv.get("CRYPTO_ARGON2_ITERATIONS", "5").toInt()
+    val cryptoArgon2HashLength: Int = dotenv.get("CRYPTO_ARGON2_HASH_LENGTH", "32").toInt()
+    val cryptoArgon2SaltLength: Int = dotenv.get("CRYPTO_ARGON2_SALT_LENGTH", "16").toInt()
+    val cryptoArgon2Parallelism: Int = dotenv.get("CRYPTO_ARGON2_PARALLELISM", "4").toInt()
+
+    val legacyCryptoSecret: String = dotenv.get("LEGACY_CRYPTO_SECRET", "secrettt")
+    val legacyCryptoSalt: ByteArray = dotenv.get("LEGACY_CRYPTO_SALT", "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0").split(",").map { it.toByte() }.toByteArray()
+
     //mongo settings
-    private val mongoUri: String = dotenv.get("MONGO_URI", "mongodb://darkan:test@testlobby.darkan.org:27017/darkan-server?retryWrites=true&w=majority")
+    val mongoUri: String = dotenv.get("MONGO_URI", "mongodb://localhost:27017/darkan-server?retryWrites=true&w=majority")
 }

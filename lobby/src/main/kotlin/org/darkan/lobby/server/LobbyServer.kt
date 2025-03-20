@@ -15,15 +15,19 @@ import org.darkan.core.EnvVars
 import org.darkan.core.Logger.logError
 import org.darkan.core.Logger.logInfo
 import org.darkan.core.Logger.logTrace
+import org.darkan.core.crypt.Crypto
 import org.darkan.core.formatPlayerNameForProtocol
+import org.darkan.core.mongo.MongoDB
+import org.darkan.core.mongo.collections.Accounts
 import org.darkan.core.net.*
 import org.darkan.core.net.prot.Codec
-import world.gregs.voidps.cache.Cache
+import org.darkan.core.type.Account
+import org.darkan.lobby.Lobby
 import world.gregs.voidps.buffer.*
+import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.secure.RSA
 import world.gregs.voidps.cache.secure.decryptXtea
 import java.math.BigInteger
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 class LobbyServer(val js5: JS5Server) {
@@ -35,8 +39,6 @@ class LobbyServer(val js5: JS5Server) {
 
     private val js5RsaMod = BigInteger(EnvVars.js5RsaModulus)
     private val js5RsaExp = BigInteger(EnvVars.js5RsaExponent)
-
-    internal val online: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     suspend fun start(): Job {
         val executor = Executors.newCachedThreadPool()
@@ -161,11 +163,29 @@ class LobbyServer(val js5: JS5Server) {
                 return output.finish(ResponseOpcode.GAME_UPDATE)
             }
         }
+
+        val account = Accounts.find(username) ?: return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+        if (!account.passwordHash.isEmpty()) {
+            if (!Crypto.verifyPasswordArgon2(password, account.passwordHash))
+                return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+        } else if (account.password != null) {
+            if (!Crypto.legacyCompare(password, account.password!!.map { it.toByte() }.toByteArray()))
+                return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+            account.passwordHash = Crypto.hashPasswordArgon2(password)
+            account.password = null
+            Accounts.save(account)
+        } else if (account.legacyPass != null) {
+            if (!Crypto.gigaLegacyCompare(password, account.legacyPass!!))
+                return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+            account.passwordHash = Crypto.hashPasswordArgon2(password)
+            account.legacyPass = null
+            Accounts.save(account)
+        }
+
         logInfo("Logging in $username")
         val session = initSession(output, isaacKeys, ip)
-        session.onDisconnected {
-            online.remove(username)
-        }
+//        session.onDisconnected { Lobby.removeLobbyPlayer(username) }
+//        login(input, session, username)
     }
 
     private fun initSession(write: ByteWriteChannel, isaacKeys: IntArray, hostname: String): Session {

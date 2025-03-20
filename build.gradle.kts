@@ -44,6 +44,7 @@ subprojects {
         implementation("io.ktor:ktor-server-content-negotiation:${findProperty("ktorVersion")}")
         implementation("io.ktor:ktor-serialization-kotlinx-json:${findProperty("ktorVersion")}")
 
+        implementation("de.mkammerer:argon2-jvm:2.12")
         implementation("io.github.cdimascio:dotenv-kotlin:6.5.0")
         implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.3.1")
         implementation("com.github.jponge:lzma-java:1.3")

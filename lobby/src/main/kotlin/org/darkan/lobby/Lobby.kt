@@ -8,12 +8,14 @@ import org.darkan.core.EnvVars
 import org.darkan.core.Logger
 import org.darkan.core.Logger.logInfo
 import org.darkan.core.net.JS5Server
+import org.darkan.core.net.Session
 import org.darkan.lobby.server.LobbyServer
 import org.darkan.lobby.web.module
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.Index
 import world.gregs.voidps.cache.file.FileProvider
 import world.gregs.voidps.cache.secure.Huffman
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
 object Lobby : CoroutineScope {
@@ -25,6 +27,9 @@ object Lobby : CoroutineScope {
     private lateinit var js5Server: JS5Server
     private lateinit var httpServer: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
     private lateinit var lobbyServer: LobbyServer
+
+    private val accountCreationSessions = ConcurrentHashMap<String, Session>()
+    private val lobbyPlayers = ConcurrentHashMap<String, Session>()
 
     fun start() {
         logInfo("Starting application services...")
