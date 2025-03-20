@@ -7,8 +7,11 @@ import com.mongodb.client.model.Sorts.ascending
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import org.darkan.core.crypt.Crypto
 import org.darkan.core.formatPlayerNameForProtocol
 import org.darkan.core.mongo.MongoDB.database
+import org.darkan.core.net.web.AccountCreateRequest
+import org.darkan.core.net.web.ConflictException
 import org.darkan.core.type.Account
 
 object Accounts {
@@ -30,6 +33,32 @@ object Accounts {
                 eq(Account::email.name, formatted)
             )
         ).firstOrNull()
+    }
+
+    suspend fun create(req: AccountCreateRequest): Account? {
+        val formattedUsername = req.username.formatPlayerNameForProtocol()
+        val formattedEmail = req.email.formatPlayerNameForProtocol()
+
+        val existingAccount = collection.find(
+            or(
+                eq(Account::username.name, formattedUsername),
+                eq(Account::email.name, formattedEmail)
+            )
+        ).firstOrNull()
+        if (existingAccount != null) throw ConflictException("Account already exists")
+
+        val newAccount = Account(
+            username = formattedUsername,
+            email = formattedEmail,
+            passwordHash = Crypto.hashPasswordArgon2(req.password)
+        )
+
+        return try {
+            collection.insertOne(newAccount)
+            newAccount
+        } catch (e: Exception) {
+            null
+        }
     }
 
     suspend fun save(account: Account) = collection.replaceOne(eq(Account::username.name, account.username), account)

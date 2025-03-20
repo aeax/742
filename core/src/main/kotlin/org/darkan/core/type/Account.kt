@@ -2,12 +2,10 @@ package org.darkan.core.type
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import org.bson.codecs.pojo.annotations.BsonCreator
-import org.bson.codecs.pojo.annotations.BsonProperty
 import org.darkan.core.formatPlayerNameForDisplay
 import org.darkan.core.formatPlayerNameForProtocol
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.*
 
 @Serializable
 enum class Rights(val crown: Int) {
@@ -21,8 +19,8 @@ enum class Rights(val crown: Int) {
 @Serializable
 class Account {
     var username: String
-    var email: String? = null
-    var recoveryEmail: String? = null
+    var email: String
+    var recoveryEmail: String
     var displayName: String
     var prevDisplayName: String = ""
     var rights: Rights = Rights.PLAYER
@@ -37,14 +35,18 @@ class Account {
     var muted: Long = 0
     var lastIp: String? = null
 
-    constructor(username: String, passwordHash: String, displayName: String = username.formatPlayerNameForDisplay()) {
+    constructor(username: String, email: String, passwordHash: String, displayName: String = username.formatPlayerNameForDisplay()) {
         this.username = username
+        this.email = email
+        this.recoveryEmail = email
         this.displayName = displayName
         this.passwordHash = passwordHash
     }
 
     constructor() {
         this.username = ""
+        this.email = ""
+        this.recoveryEmail = ""
         this.displayName = ""
         this.passwordHash = ""
     }

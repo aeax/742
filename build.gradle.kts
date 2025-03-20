@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.1.10" apply false
+    kotlin("plugin.serialization") version "2.1.10" apply false
 }
 
 allprojects {
@@ -19,6 +20,17 @@ subprojects {
     configure<JavaPluginExtension> {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(23))
+        }
+    }
+
+    tasks.withType<Jar> {
+        manifest {
+            attributes(
+                mapOf(
+                    "Implementation-Title" to project.name,
+                    "Implementation-Version" to project.version
+                )
+            )
         }
     }
 
@@ -42,6 +54,8 @@ subprojects {
         implementation("io.ktor:ktor-server-websockets:${findProperty("ktorVersion")}")
         implementation("io.ktor:ktor-server-sessions:${findProperty("ktorVersion")}")
         implementation("io.ktor:ktor-server-content-negotiation:${findProperty("ktorVersion")}")
+        implementation("io.ktor:ktor-server-status-pages:${findProperty("ktorVersion")}")
+        implementation("io.ktor:ktor-server-request-validation:${findProperty("ktorVersion")}")
         implementation("io.ktor:ktor-serialization-kotlinx-json:${findProperty("ktorVersion")}")
 
         implementation("de.mkammerer:argon2-jvm:2.12")

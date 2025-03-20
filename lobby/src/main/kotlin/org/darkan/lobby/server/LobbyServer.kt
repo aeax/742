@@ -28,6 +28,7 @@ import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.secure.RSA
 import world.gregs.voidps.cache.secure.decryptXtea
 import java.math.BigInteger
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 class LobbyServer(val js5: JS5Server) {
@@ -39,6 +40,8 @@ class LobbyServer(val js5: JS5Server) {
 
     private val js5RsaMod = BigInteger(EnvVars.js5RsaModulus)
     private val js5RsaExp = BigInteger(EnvVars.js5RsaExponent)
+
+    private val pendingLogins = ConcurrentHashMap.newKeySet<String>()
 
     suspend fun start(): Job {
         val executor = Executors.newCachedThreadPool()
@@ -110,7 +113,7 @@ class LobbyServer(val js5: JS5Server) {
     private suspend fun init(input: ByteReadChannel, output: ByteWriteChannel, ip: String) {
         output.respond(ResponseOpcode.JS5_SYNC)
         val opcode = input.readByte().toInt()
-        if (opcode != RequestOpcode.LOBBY) return output.finish(ResponseOpcode.LOGIN_SERVER_REJECTED_SESSION)
+        if (opcode != RequestOpcode.LOBBY || pendingLogins.size > 20) return output.finish(ResponseOpcode.LOGIN_SERVER_REJECTED_SESSION)
         val size = input.readShort().toInt()
         val packet = input.readPacket(size)
         val major = packet.readInt()
@@ -164,25 +167,39 @@ class LobbyServer(val js5: JS5Server) {
             }
         }
 
-        val account = Accounts.find(username) ?: return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+        if (!pendingLogins.add(username)) return output.finish(ResponseOpcode.LOGIN_LIMIT_EXCEEDED)
+        val account = Accounts.find(username) ?: return run {
+            pendingLogins.remove(username)
+            output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+        }
         if (!account.passwordHash.isEmpty()) {
             if (!Crypto.verifyPasswordArgon2(password, account.passwordHash))
-                return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+                return run {
+                    pendingLogins.remove(username)
+                    output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+                }
         } else if (account.password != null) {
             if (!Crypto.legacyCompare(password, account.password!!.map { it.toByte() }.toByteArray()))
-                return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+                return run {
+                    pendingLogins.remove(username)
+                    output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+                }
             account.passwordHash = Crypto.hashPasswordArgon2(password)
             account.password = null
             Accounts.save(account)
         } else if (account.legacyPass != null) {
             if (!Crypto.gigaLegacyCompare(password, account.legacyPass!!))
-                return output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+                return run {
+                    pendingLogins.remove(username)
+                    output.finish(ResponseOpcode.INVALID_CREDENTIALS)
+                }
             account.passwordHash = Crypto.hashPasswordArgon2(password)
             account.legacyPass = null
             Accounts.save(account)
         }
 
         logInfo("Logging in $username")
+        pendingLogins.remove(username)
         val session = initSession(output, isaacKeys, ip)
 //        session.onDisconnected { Lobby.removeLobbyPlayer(username) }
 //        login(input, session, username)
