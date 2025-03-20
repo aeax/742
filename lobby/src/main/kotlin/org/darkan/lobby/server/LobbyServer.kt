@@ -117,7 +117,7 @@ class LobbyServer(val js5: JS5Server) {
         val size = input.readShort().toInt()
         val packet = input.readPacket(size)
         val major = packet.readInt()
-        val patch = packet.readInt()
+        val minor = packet.readInt()
         val rsaSize = packet.readUShort().toInt()
         val codec = Codec.get(major) ?: return output.finish(ResponseOpcode.GAME_UPDATE)
         val sensitiveData = ByteReadPacket(RSA.crypt(packet.readByteArray(rsaSize), js5RsaMod, js5RsaExp))

@@ -22,7 +22,7 @@ class JS5Server(val provider: FileProvider) {
         try {
             val size = input.readByte().toInt() //unused because suspend OP
 
-            if (input.readInt() != EnvVars.patchVersion || input.readInt() != EnvVars.majorVersion || input.readInt() != EnvVars.minorVersion) {
+            if (input.readInt() != EnvVars.majorVersion || input.readInt() != EnvVars.minorVersion) {
                 logTrace("Invalid client version")
                 output.writeByte(ResponseOpcode.GAME_UPDATE)
                 output.flushAndClose()

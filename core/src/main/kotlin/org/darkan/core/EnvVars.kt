@@ -26,7 +26,6 @@ object EnvVars {
     val memCache: Boolean = dotenv.get("MEM_CACHE", (!debug).toString()).toBooleanStrict()
     val majorVersion: Int = dotenv.get("MAJOR_VERSION", "727").toInt()
     val minorVersion: Int = dotenv.get("MINOR_VERSION", "1").toInt()
-    val patchVersion: Int = dotenv.get("PATCH_VERSION", "6").toInt()
     val packetSizeLimit: Int = dotenv.get("PACKET_SIZE_LIMIT", "7500").toInt()
     val worldCycleNanos: Long = dotenv.get("WORLD_CYCLE_NANOS", "600000000").toLong()
     val worldCycleMillis: Long = worldCycleNanos / 1000000L
