@@ -469,20 +469,20 @@ data class CamForceAngle(val angleX: Int, val angleY: Int) : ServerProt
 /**
  * Messaging protocols
  */
-data class MessagePrivate(val crown: Int, val displayName: String, val prevDisplayName: String, val message: String) : ServerProt
+data class MessagePrivate(val crown: Int, val displayName: String, val quickResponseName: String = displayName, val message: String) : ServerProt
 data class MessagePrivateEcho(val senderDisplayName: String, val message: String) : ServerProt
 
-data class MessageQuickChatPrivate(val crown: Int, val displayName: String, val prevDisplayName: String, val message: QuickChatMessage) : ServerProt
+data class MessageQuickChatPrivate(val crown: Int, val displayName: String, val quickResponseName: String = displayName, val message: QuickChatMessage) : ServerProt
 data class MessageQuickChatPrivateEcho(val senderDisplayName: String, val message: QuickChatMessage) : ServerProt
 
-data class MessageFriendsChat(val crown: Int, val displayName: String, val prevDisplayName: String, val chatName: String, val message: String) : ServerProt
-data class MessageQuickChatFriendsChat(val chatName: String, val crown: Int, val displayName: String, val prevDisplayName: String, val message: QuickChatMessage) : ServerProt
+data class MessageFriendsChat(val crown: Int, val displayName: String, val quickResponseName: String = displayName, val chatName: String, val message: String) : ServerProt
+data class MessageQuickChatFriendsChat(val chatName: String, val crown: Int, val displayName: String, val quickResponseName: String = displayName, val message: QuickChatMessage) : ServerProt
 
 data class MessageClanChannel(val guest: Boolean, val crown: Int, val displayName: String, val message: String) : ServerProt
 data class MessageQuickChatClanChannel(val guest: Boolean, val crown: Int, val displayName: String, val message: QuickChatMessage) : ServerProt
 
-data class MessagePlayerGroup(val crown: Int, val displayName: String, val prevDisplayName: String, val message: String) : ServerProt
-data class MessageQuickChatPlayerGroup(val crown: Int, val displayName: String, val prevDisplayName: String, val message: QuickChatMessage) : ServerProt
+data class MessagePlayerGroup(val crown: Int, val displayName: String, val quickResponseName: String = displayName, val message: String) : ServerProt
+data class MessageQuickChatPlayerGroup(val crown: Int, val displayName: String, val quickResponseName: String = displayName, val message: QuickChatMessage) : ServerProt
 
 data class MessagePublic(val pid: Int, val messageIcon: Int, val message: ChatMessage) : ServerProt
 

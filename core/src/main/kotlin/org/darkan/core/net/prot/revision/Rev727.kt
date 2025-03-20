@@ -603,7 +603,7 @@ fun register727() =
 
         // Messaging protocols
         serverProt<MessagePrivate>(opcode = 10, size = ProtSize.VarShort) { out ->
-            out.writeName(displayName, prevDisplayName)
+            out.writeName(displayName, quickResponseName)
             out.writeHashedMessageTimestamp(message.take(210))
             out.writeByte(crown)
             out.writeBytes(Cache.huffman.compress(message.take(210)))
@@ -616,7 +616,7 @@ fun register727() =
         }
 
         serverProt<MessageFriendsChat>(opcode = 25, size = ProtSize.VarByte) { out ->
-            out.writeName(displayName, prevDisplayName)
+            out.writeName(displayName, quickResponseName)
             out.writeLong(chatName)
             out.writeHashedMessageTimestamp(message.take(210))
             out.writeByte(crown)
@@ -624,7 +624,7 @@ fun register727() =
         }
 
         serverProt<MessageQuickChatPrivate>(opcode = 31, size = ProtSize.VarByte) { out ->
-            out.writeName(displayName, prevDisplayName)
+            out.writeName(displayName, quickResponseName)
             out.writeHashedQCMessageTimestamp(message.fileId)
             out.writeByte(crown)
             out.writeShort(message.fileId)
@@ -640,7 +640,7 @@ fun register727() =
         }
 
         serverProt<MessageQuickChatPlayerGroup>(opcode = 83, size = ProtSize.VarByte) { out ->
-            out.writeName(displayName, prevDisplayName)
+            out.writeName(displayName, quickResponseName)
             out.writeByte(crown)
             out.writeShort(message.fileId)
             message.data?.let { out.writeBytes(it) }
@@ -652,7 +652,7 @@ fun register727() =
         }
 
         serverProt<MessageQuickChatFriendsChat>(opcode = 142, size = ProtSize.VarByte) { out ->
-            out.writeName(displayName, prevDisplayName)
+            out.writeName(displayName, quickResponseName)
             out.writeLong(chatName)
             out.writeHashedQCMessageTimestamp(message.fileId)
             out.writeByte(crown)
@@ -670,7 +670,7 @@ fun register727() =
         }
 
         serverProt<MessagePlayerGroup>(opcode = 133, size = ProtSize.VarByte) { out ->
-            out.writeName(displayName, prevDisplayName)
+            out.writeName(displayName, quickResponseName)
             out.writeByte(crown)
             out.writeBytes(Cache.huffman.compress(message.take(210)))
         }
