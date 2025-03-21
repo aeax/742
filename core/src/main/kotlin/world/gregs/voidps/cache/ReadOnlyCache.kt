@@ -207,6 +207,20 @@ abstract class ReadOnlyCache(indexCount: Int) : Cache {
     override fun close() {
     }
 
+    fun calcSize(indexId: Int, archiveName: String? = null): Int {
+        if (archiveName != null) {
+            val archiveId = archiveId(indexId, archiveName)
+            if (archiveId < 0) return 0
+            return (sector(indexId, archiveId(indexId, archiveName))?.size ?: 2) - 2
+        }
+        var size = 0
+        archives(indexId).forEach {
+            size += sector(indexId, it)?.size ?: 0
+        }
+        size += sector(255, indexId)?.size ?: 0
+        return size
+    }
+
     companion object {
         private const val NAME_FLAG = 0x1
         private const val WHIRLPOOL_FLAG = 0x2

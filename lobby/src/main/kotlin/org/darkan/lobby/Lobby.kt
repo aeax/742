@@ -14,6 +14,7 @@ import org.darkan.lobby.web.module
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.Index
 import world.gregs.voidps.cache.file.FileProvider
+import world.gregs.voidps.cache.file.prefetchKeys
 import world.gregs.voidps.cache.secure.Huffman
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
@@ -35,7 +36,7 @@ object Lobby : CoroutineScope {
         logInfo("Starting application services...")
         cache = Cache.get()
         cacheProvider = FileProvider.load(cache)
-        js5Server = JS5Server(cacheProvider)
+        js5Server = JS5Server(cacheProvider, prefetchKeys(cache))
         startLobbyAPI()
         runBlocking {
             startLobbyServer()

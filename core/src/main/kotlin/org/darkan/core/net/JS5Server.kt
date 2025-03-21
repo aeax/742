@@ -9,10 +9,10 @@ import org.darkan.core.Logger.logTrace
 import org.darkan.core.Logger.logWarn
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.file.FileProvider
+import world.gregs.voidps.cache.file.prefetchKeys
 
-class JS5Server(val provider: FileProvider) {
+class JS5Server(val provider: FileProvider, val prefetchKeys: IntArray) {
     val limiter = MultilogLimiter()
-    val js5Keys = EnvVars.js5Keys.split(",").map { it.trim().toInt() }.toIntArray()
 
     suspend fun init(input: ByteReadChannel, output: ByteWriteChannel, ip: String) {
         if (!limiter.add(ip)) {
@@ -36,7 +36,7 @@ class JS5Server(val provider: FileProvider) {
                 return
             }
             output.writeByte(ResponseOpcode.JS5_SYNC)
-            for (key in js5Keys)
+            for (key in prefetchKeys)
                 output.writeInt(key)
             output.flush()
 

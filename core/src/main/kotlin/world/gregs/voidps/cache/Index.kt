@@ -22,7 +22,7 @@ object Index {
     const val NPCS = 18
     const val ITEMS = 19 // objects
     const val ANIMATIONS = 20// sequences
-    const val GRAPHICS = 21// spot anims
+    const val SPOTANIMS = 21// spot anims
     const val VAR_BIT = 22 // structs
     const val WORLD_MAP = 23
     const val QUICK_CHAT_MESSAGES = 24

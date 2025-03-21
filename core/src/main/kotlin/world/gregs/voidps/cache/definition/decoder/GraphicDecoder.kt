@@ -2,10 +2,10 @@ package world.gregs.voidps.cache.definition.decoder
 
 import world.gregs.voidps.buffer.read.Reader
 import world.gregs.voidps.cache.DefinitionDecoder
-import world.gregs.voidps.cache.Index.GRAPHICS
+import world.gregs.voidps.cache.Index.SPOTANIMS
 import world.gregs.voidps.cache.definition.data.GraphicDefinition
 
-class GraphicDecoder : DefinitionDecoder<GraphicDefinition>(GRAPHICS) {
+class GraphicDecoder : DefinitionDecoder<GraphicDefinition>(SPOTANIMS) {
 
     override fun create(size: Int) = Array(size) { GraphicDefinition(it) }
 

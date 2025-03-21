@@ -1,12 +1,11 @@
 package world.gregs.voidps.cache.file
 
-import org.darkan.core.EnvVars
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.Index
 
 fun prefetchKeys(cache: Cache): IntArray {
-    val existing = EnvVars.js5Keys
-    return existing?.split(",")?.map { it.toInt() }?.toIntArray() ?: generatePrefetchKeys(cache)
+    return generatePrefetchKeys(cache)
+    //return EnvVars.js5Keys?.split(",")?.map { it.toInt() }?.toIntArray() ?: generatePrefetchKeys(cache)
 }
 
 /**
@@ -18,7 +17,6 @@ fun generatePrefetchKeys(cache: Cache) = intArrayOf(
     native(cache, "jaclib"),
     native(cache, "jaggl"),
     native(cache, "jagdx"),
-    native(cache, "jagmisc"),
     native(cache, "sw3d"),
     native(cache, "hw3d"),
     native(cache, "jagtheora"),
@@ -30,10 +28,11 @@ fun generatePrefetchKeys(cache: Cache) = intArrayOf(
     archive(cache, Index.NPCS),
     archive(cache, Index.ITEMS),
     archive(cache, Index.ANIMATIONS),
-    archive(cache, Index.GRAPHICS),
+    archive(cache, Index.SPOTANIMS),
     archive(cache, Index.VAR_BIT),
     archive(cache, Index.QUICK_CHAT_MESSAGES),
     archive(cache, Index.QUICK_CHAT_MENUS),
+    archive(cache, Index.TEXTURES),
     archive(cache, Index.PARTICLES),
     archive(cache, Index.BILLBOARDS),
     file(cache, Index.HUFFMAN, "huffman"),
