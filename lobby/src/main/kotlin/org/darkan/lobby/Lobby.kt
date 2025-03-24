@@ -75,4 +75,6 @@ object Lobby : CoroutineScope {
         lobbyServer = LobbyServer(js5Server)
         lobbyServer.start()
     }
+
+    fun removeLobbyPlayer(username: String) = lobbyPlayers.remove(username)
 }

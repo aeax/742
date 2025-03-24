@@ -3,6 +3,7 @@ package org.darkan.core.net.prot
 import org.darkan.core.clientwatch.ReflectionCheck
 import org.darkan.core.social.ChatMessage
 import org.darkan.core.social.QuickChatMessage
+import org.darkan.core.type.Account
 import org.darkan.core.type.ChatMessageType
 import org.darkan.core.type.RegionSize
 import org.darkan.core.worldlist.WorldList
@@ -515,17 +516,11 @@ data class VarclanSetString(val id: Int, val value: String) : ServerProt
 /**
  * Player related protocols
  */
-data class PlayerWeight(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 14, size 2
-) : ServerProt
+@JvmInline value class PlayerWeight(val weight: Int) : ServerProt
 
-data class PlayerOption(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 111, size -1
-) : ServerProt
+data class PlayerOption(val option: String, val slot: Int, val top: Boolean, val cursor: Int) : ServerProt
 
-data class RunEnergy(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 64, size 1
-) : ServerProt
+@JvmInline value class RunEnergy(val energy: Int) : ServerProt
 
 data class FriendStatus(val dummy: Int
     // TODO: Add fields based on analysis of opcode 74, size -2
@@ -535,7 +530,7 @@ data class FriendlistLoaded(val dummy: Int
     // TODO: Add fields based on analysis of opcode 101, size 0
 ) : ServerProt
 
-data class AddIgnoreReq(val dummy: Int
+data class AddIgnore(val dummy: Int
     // TODO: Add fields based on analysis of opcode 138, size -1
 ) : ServerProt
 
@@ -681,6 +676,4 @@ data class WorldLoginDetails(val dummy: Int
     // TODO: Add fields based on analysis of pre-world opcode 2, size -1
 ) : ServerProt
 
-data class LobbyLoginDetails(val dummy: Int
-    // TODO: Add fields based on analysis of pre-world opcode 2, size -1
-) : ServerProt
+data class LobbyLoginDetails(val account: Account, val worldLoginToken: String) : ServerProt

@@ -81,6 +81,11 @@ suspend fun ByteWriteChannel.writeMediumReverseEnd(value: Int) {
     writeByte(value shr 8)
 }
 
+suspend fun ByteWriteChannel.write5(value: Int) {
+    writeByte((value shr 32).toByte())
+    writeInt((value and 0xffffffffL.toInt()).toInt())
+}
+
 suspend fun ByteWriteChannel.writeSmart(value: Int) {
     if (value >= 128) {
         writeShort(value + 32768)
@@ -98,15 +103,14 @@ suspend fun ByteWriteChannel.writeFlags(flags: Int) {
     writeByte(flags and 0x7F)
 }
 
-suspend fun ByteWriteChannel.writeString(value: String?) {
-    if (value != null)
-        writeFully(value.toByteArray())
+suspend fun ByteWriteChannel.writeRSString(value: String) {
+    writeFully(value.toByteArray())
     writeByte(0)
 }
 
-suspend fun ByteWriteChannel.writeJagString(value: String?) {
+suspend fun ByteWriteChannel.writeJagString(value: String) {
     writeByte(0)
-    writeString(value)
+    writeRSString(value)
 }
 
 /**

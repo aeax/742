@@ -12,6 +12,7 @@ import org.darkan.core.clientwatch.ReflectionResponseCode
 import org.darkan.core.net.prot.*
 import org.darkan.core.social.QuickChatMessage
 import org.darkan.core.type.Preference
+import org.darkan.core.worldlist.World
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.type.Tile
@@ -395,7 +396,7 @@ fun register727() =
         // Friends/Ignore List
         clientProt(opcode = 26, size = ProtSize.VarByte) { AddFriend(readRSString()) }
         clientProt(opcode = 29, size = ProtSize.VarByte) { RemoveFriend(readRSString()) }
-        clientProt(opcode = 34, size = ProtSize.VarByte) { AddIgnore(readRSString(), readBoolean()) }
+        clientProt(opcode = 34, size = ProtSize.VarByte) { AddIgnoreReq(readRSString(), readBoolean()) }
         clientProt(opcode = 12, size = ProtSize.VarByte) { RemoveIgnore(readRSString()) }
 
         // Friend Chat
@@ -488,17 +489,17 @@ fun register727() =
                 out.writeByte(check.type.ordinal)
                 when (check.type) {
                     ReflectionCheckType.GET_INT, ReflectionCheckType.SET_INT, ReflectionCheckType.GET_FIELD_MODIFIERS -> {
-                        out.writeString(check.className)
-                        out.writeString(check.methodName)
+                        out.writeRSString(check.className)
+                        out.writeRSString(check.methodName)
                         if (check.type == ReflectionCheckType.SET_INT)
                             check.fieldValue?.let { out.writeInt(it) }
                     }
                     ReflectionCheckType.GET_METHOD_RETURN_VALUE, ReflectionCheckType.GET_METHOD_MODIFIERS -> {
-                        out.writeString(check.className)
-                        out.writeString(check.methodName)
+                        out.writeRSString(check.className)
+                        out.writeRSString(check.methodName)
                         out.writeByte(check.paramTypes.size)
-                        check.paramTypes.forEach { out.writeString(it) }
-                        out.writeString(check.returnType ?: "void")
+                        check.paramTypes.forEach { out.writeRSString(it) }
+                        out.writeRSString(check.returnType ?: "void")
                         if (check.type == ReflectionCheckType.GET_METHOD_RETURN_VALUE) {
                             check.paramValues.forEach { param ->
                                 ByteArrayOutputStream().use { bos ->
@@ -610,7 +611,7 @@ fun register727() =
         }
 
         serverProt<MessageQuickChatPrivateEcho>(opcode = 22, size = ProtSize.VarByte) { out ->
-            out.writeString(senderDisplayName)
+            out.writeRSString(senderDisplayName)
             out.writeShort(message.fileId)
             message.data?.let { out.writeBytes(it) }
         }
@@ -633,7 +634,7 @@ fun register727() =
 
         serverProt<MessageClanChannel>(opcode = 81, size = ProtSize.VarByte) { out ->
             out.writeBoolean(!guest)
-            out.writeString(displayName)
+            out.writeRSString(displayName)
             out.writeHashedMessageTimestamp(message.take(210))
             out.writeByte(crown)
             out.writeBytes(Cache.huffman.compress(message.take(210)))
@@ -647,7 +648,7 @@ fun register727() =
         }
 
         serverProt<MessagePrivateEcho>(opcode = 92, size = ProtSize.VarShort) { out ->
-            out.writeString(senderDisplayName)
+            out.writeRSString(senderDisplayName)
             out.writeBytes(Cache.huffman.compress(message.take(210)))
         }
 
@@ -662,7 +663,7 @@ fun register727() =
 
         serverProt<MessageQuickChatClanChannel>(opcode = 131, size = ProtSize.VarByte) { out ->
             out.writeBoolean(!guest)
-            out.writeString(displayName)
+            out.writeRSString(displayName)
             out.writeHashedQCMessageTimestamp(message.fileId)
             out.writeByte(crown)
             out.writeShort(message.fileId)
@@ -696,10 +697,10 @@ fun register727() =
             out.writeInt(effectFlags)
             out.writeByte(maskData)
             if (targetDisplayName != null) {
-                out.writeString(targetDisplayName)
-                //stream.writeString(target.getDisplayName());
+                out.writeRSString(targetDisplayName)
+                //stream.writeRSString(target.getDisplayName());
             }
-            out.writeString(message.take(248))
+            out.writeRSString(message.take(248))
         }
 
         // Variable related protocols
@@ -734,13 +735,13 @@ fun register727() =
         }
 
         serverProt<ClientSetVarcStrSmall>(opcode = 54, size = ProtSize.VarByte) { out ->
-            out.writeString(value)
+            out.writeRSString(value)
             out.writeShortAddLittle(id)
         }
 
         serverProt<ClientSetVarcStrLarge>(opcode = 119, size = ProtSize.VarShort) { out ->
             out.writeShortLittle(id)
-            out.writeString(value)
+            out.writeRSString(value)
         }
 
         serverProt<VarclanSetLong>(opcode = 26, size = 10) { out ->
@@ -760,7 +761,7 @@ fun register727() =
 
         serverProt<VarclanSetString>(opcode = 50, size = ProtSize.VarByte) { out ->
             out.writeShort(id)
-            out.writeString(value)
+            out.writeRSString(value)
         }
 
         serverProt<VarclanEnable>(opcode = 45)
@@ -771,15 +772,18 @@ fun register727() =
 
         // Player related protocols
         serverProt<PlayerWeight>(opcode = 14, size = 2) { out ->
-            // TODO: Implement serialization
+            out.writeShort(weight)
         }
 
         serverProt<PlayerOption>(opcode = 111, size = ProtSize.VarByte) { out ->
-            // TODO: Implement serialization
+            out.writeRSString(option)
+            out.writeByteAdd(slot)
+            out.writeShortAddLittle(cursor)
+            out.writeByteInverse(if (top) 1 else 0)
         }
 
         serverProt<RunEnergy>(opcode = 64, size = 1) { out ->
-            // TODO: Implement serialization
+            out.writeByte(energy)
         }
 
         serverProt<FriendStatus>(opcode = 74, size = ProtSize.VarShort) { out ->
@@ -788,7 +792,7 @@ fun register727() =
 
         serverProt<FriendlistLoaded>(opcode = 101)
 
-        serverProt<AddIgnoreReq>(opcode = 138, size = ProtSize.VarByte) { out ->
+        serverProt<AddIgnore>(opcode = 138, size = ProtSize.VarByte) { out ->
             // TODO: Implement serialization
         }
 
@@ -1264,4 +1268,43 @@ fun register727() =
         }
 
         serverProt<ResetSounds>(opcode = 120)
+
+        serverProt<LobbyLoginDetails>(opcode = 2, size = ProtSize.VarByte) { out ->
+            var ipHash = 0
+            out.writeByte(account.rights.crown) // rights
+            out.writeByte(0) // PLAYER_MOD_LEVEL
+            out.writeByte(0) // USERDETAIL_QUICKCHAT_ONLY
+            out.writeMedium(0)
+            out.writeByte(0) // Gender.
+            out.writeByte(0) // VERIFIED_EMAIL_ADDRESS
+            out.writeByte(1)
+            out.writeLong(Long.Companion.MAX_VALUE) // members subscription end
+            out.write5(12)
+            out.writeByte(0x1) // 0x1 - if members, 0x2 - subscription
+            out.writeInt(1) // jcoins?
+            out.writeByte(1) // is loyalty member?
+            out.writeInt(1) // loyalty points?
+            out.writeShort(592) // recovery questions set date
+            out.writeShort(0) // Messages add support for forum integration
+            out.writeShort(0) // last logged in date
+            if (account.lastIp != null) {
+                val ipSplit = account.lastIp!!.split("\\.")
+                ipHash = ipSplit[0].toInt() shl 24 or (ipSplit[1].toInt() shl 16) or (ipSplit[2].toInt() shl 8) or ipSplit[3].toInt()
+            }
+            out.writeInt(ipHash) // ip part
+            out.writeRSString(worldLoginToken)
+            out.writeByte(2) // email status (0 - no email, 1 - pending parental confirmation, 2 - pending confirmation, 3 - registered)
+            out.writeShort(302)
+            out.writeShort(1)
+            out.writeByte(1)
+            out.writeJagString(account.displayName)
+            out.writeByte(1)
+            out.writeInt(1)
+            out.writeByte(0) // Removed on EOC revisions for some reason. idk
+            //val defWorld: World? = Lobby.getWorlds().getDefault().getInfo()
+            //out.writeShort(if (defWorld == null) Lobby.WORLD_INFO.number() else defWorld.number()) // Default world ID
+            //out.writeJagString(if (defWorld == null) Lobby.WORLD_INFO.ipAddress() else defWorld.ipAddress())
+            out.writeShort(0)
+            out.writeJagString("127.0.0.1")
+        }
     }

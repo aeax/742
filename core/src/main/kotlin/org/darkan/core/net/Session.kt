@@ -1,17 +1,23 @@
 package org.darkan.core.net
 
 import io.ktor.utils.io.*
+import io.ktor.utils.io.core.ByteReadPacket
+import io.ktor.utils.io.core.remaining
 import kotlinx.coroutines.runBlocking
+import kotlinx.io.Source
 import org.darkan.core.Logger.logWarn
+import org.darkan.core.net.prot.Codec
+import org.darkan.core.net.prot.ProtSize
+import org.darkan.core.net.prot.ServerProt
 import world.gregs.voidps.buffer.writeByte
-import world.gregs.voidps.buffer.writeShort
 import world.gregs.voidps.buffer.writeSmart
 
 open class Session(
     private val write: ByteWriteChannel,
     val isaacIn: Isaac,
     private val isaacOut: Isaac?,
-    val ip: String
+    val ip: String,
+    val codec: Codec,
 ) {
     enum class State { CONNECTED, LOST_CONNECTION, DISCONNECTED }
 
@@ -56,49 +62,59 @@ open class Session(
         write.flush()
     }
 
-    open suspend fun send(opcode: Int, block: suspend ByteWriteChannel.() -> Unit) = send(opcode, -1, FIXED, block)
-
-    open suspend fun send(opcode: Int, size: Int, type: Int, block: suspend ByteWriteChannel.() -> Unit) {
+    open suspend fun send(serverProt: ServerProt, noIsaac: Boolean = false) {
         if (disconnected) return
         try {
-            write.header(opcode, type, size, isaacOut)
-            block.invoke(write)
+            val encoder = codec.serverProts[serverProt::class] ?: return logWarn("Missing ServerProt encoder: ${serverProt::class}")
+
+            when (encoder.size) {
+                is ProtSize.Fixed -> {
+                    writeOpcode(encoder.opcode, if (noIsaac) null else isaacOut)
+                    encoder.encoder?.invoke(serverProt, write)
+                }
+                ProtSize.VarByte, ProtSize.VarShort -> {
+                    val dataChannel = ByteChannel()
+                    encoder.encoder?.invoke(serverProt, dataChannel)
+                    val packetData = dataChannel.toByteReadPacket()
+                    val packetLength = packetData.remaining
+
+                    if (encoder.size == ProtSize.VarByte && packetLength > 255)
+                        logWarn("Packet length exceeds VarByte maximum (${packetLength} > 255)")
+                    else if (encoder.size == ProtSize.VarShort && packetLength > 65535)
+                        logWarn("Packet length exceeds VarShort maximum (${packetLength} > 65535)")
+
+                    writeOpcode(encoder.opcode, if (noIsaac) null else isaacOut)
+
+                    if (encoder.size == ProtSize.VarByte)
+                        write.writeByte(packetLength.toByte())
+                    else
+                        write.writeShort(packetLength.toShort())
+
+                    write.writePacket(packetData)
+                }
+            }
         } catch (e: Exception) {
             logWarn("Client error:", e)
             runBlocking { disconnect() }
         }
     }
 
-    private suspend fun ByteWriteChannel.header(opcode: Int, type: Int, size: Int, cipher: Isaac?) {
+    private suspend fun writeOpcode(opcode: Int, cipher: Isaac?) {
         if (opcode < 0) return
         if (cipher != null) {
             if (opcode >= 128) {
-                writeByte(((opcode shr 8) + 128) + cipher.nextInt())
-                writeByte(opcode + cipher.nextInt())
+                write.writeByte(((opcode shr 8) + 128) + cipher.nextInt())
+                write.writeByte(opcode + cipher.nextInt())
             } else
-                writeByte(opcode + cipher.nextInt())
-        } else {
-            writeSmart(opcode)
-        }
-        when (type) {
-            BYTE -> writeByte(size)
-            SHORT -> writeShort(size)
-        }
+                write.writeByte(opcode + cipher.nextInt())
+        } else
+            write.writeSmart(opcode)
     }
 
-    companion object {
-        const val FIXED = 0
-        const val BYTE = -1
-        const val SHORT = -2
-
-        fun smart(value: Int) = if (value >= 128) 2 else 1
-
-        fun string(value: String?) = (value?.length ?: 0) + 1
-
-        fun bits(bitCount: Int) = (bitCount + 7) / 8
-
-        fun name(displayName: String, responseName: String): Int {
-            return 1 + string(displayName) + if (displayName != responseName) string(responseName) else 0
-        }
+    private suspend fun ByteChannel.toByteReadPacket(): Source {
+        flush()
+        val packet = ByteReadPacket(ByteArray(availableForRead).also { readFully(it) })
+        close()
+        return packet
     }
 }

@@ -7,6 +7,7 @@ import io.ktor.utils.io.*
 import io.ktor.utils.io.CancellationException
 import io.ktor.utils.io.core.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.io.EOFException
 import kotlinx.io.readByteArray
 import kotlinx.io.readUByte
@@ -21,8 +22,10 @@ import org.darkan.core.mongo.MongoDB
 import org.darkan.core.mongo.collections.Accounts
 import org.darkan.core.net.*
 import org.darkan.core.net.prot.Codec
+import org.darkan.core.net.prot.ServerProt
 import org.darkan.core.type.Account
 import org.darkan.lobby.Lobby
+import org.darkan.lobby.web.model.LobbyPlayer
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.secure.RSA
@@ -200,16 +203,17 @@ class LobbyServer(val js5: JS5Server) {
 
         logInfo("Logging in $username")
         pendingLogins.remove(username)
-        val session = initSession(output, isaacKeys, ip)
-//        session.onDisconnected { Lobby.removeLobbyPlayer(username) }
-//        login(input, session, username)
+        val session = initSession(output, isaacKeys, ip, codec)
+        session.onDisconnected { Lobby.removeLobbyPlayer(username) }
+        val lobbyPlayer = LobbyPlayer(session, account)
+        lobbyPlayer.login(input)
     }
 
-    private fun initSession(write: ByteWriteChannel, isaacKeys: IntArray, hostname: String): Session {
+    private fun initSession(write: ByteWriteChannel, isaacKeys: IntArray, hostname: String, codec: Codec): Session {
         val inCipher = Isaac(isaacKeys)
         for (i in isaacKeys.indices)
             isaacKeys[i] += 50
         val outCipher = Isaac(isaacKeys)
-        return Session(write, inCipher, outCipher, hostname)
+        return Session(write, inCipher, outCipher, hostname, codec)
     }
 }

@@ -132,7 +132,7 @@ data class QuickChatPrivate(val toUsername: String, val qcId: Int, val messageDa
 // Friends/Ignore List
 @JvmInline value class AddFriend(val name: String) : ClientProt
 @JvmInline value class RemoveFriend(val name: String) : ClientProt
-data class AddIgnore(val username: String, val temporary: Boolean) : ClientProt
+data class AddIgnoreReq(val username: String, val temporary: Boolean) : ClientProt
 @JvmInline value class RemoveIgnore(val name: String) : ClientProt
 
 // Friend Chat
