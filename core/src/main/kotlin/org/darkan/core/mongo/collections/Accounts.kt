@@ -5,7 +5,6 @@ import com.mongodb.client.model.Filters.or
 import com.mongodb.client.model.IndexOptions
 import com.mongodb.client.model.Sorts.ascending
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.darkan.core.crypt.Crypto
 import org.darkan.core.formatPlayerNameForProtocol

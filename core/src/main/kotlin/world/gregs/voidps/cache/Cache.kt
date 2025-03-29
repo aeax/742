@@ -1,8 +1,11 @@
 package world.gregs.voidps.cache
 
 import org.darkan.core.EnvVars
+import world.gregs.voidps.cache.definition.data.VarBitDefinition
+import world.gregs.voidps.cache.definition.decoder.VarBitDecoder
 import world.gregs.voidps.cache.secure.Huffman
 import java.util.*
+import kotlin.math.sin
 
 interface Cache {
 
@@ -51,6 +54,10 @@ interface Cache {
 
         private val _huffman: Huffman by lazy {
             Huffman().load(singleton.data(Index.HUFFMAN, 1)!!)
+        }
+
+        val varbits: Array<VarBitDefinition> by lazy {
+            VarBitDecoder().load(singleton)
         }
 
         fun get() = singleton
