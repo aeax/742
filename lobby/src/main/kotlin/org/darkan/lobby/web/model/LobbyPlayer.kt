@@ -2,6 +2,7 @@ package org.darkan.lobby.web.model
 
 import io.ktor.utils.io.*
 import kotlinx.coroutines.channels.Channel
+import org.darkan.core.Logger.logDebug
 import org.darkan.core.Logger.logSevere
 import org.darkan.core.net.Session
 import org.darkan.core.net.prot.ClientProt
@@ -53,7 +54,26 @@ class LobbyPlayer(val session: Session, val account: Account) {
                 ProtSize.VarShort -> read.readUShort()
             }
             val packet = read.readPacket(size)
-            readChannel.send(clientProt.decoder?.invoke(packet, size) ?: continue)
+
+            val packetData = clientProt.decoder?.invoke(packet, opcode) ?: session.codec.createInstanceForOpcode<ClientProt>(opcode)
+            if (packetData == null) {
+                logSevere("Failed to create packet instance for opcode $opcode")
+                continue
+            }
+            logDebug("Decoded packet data: $packetData")
+            readChannel.send(packetData)
+        }
+    }
+
+    fun handleDecodedPackets() {
+        for (i in 0 until 50) {
+            val packet = readChannel.tryReceive().getOrNull() ?: break
+            logDebug("Handling packet: $packet")
+            try {
+                //handlers.handle(this, packet)
+            } catch (e: Throwable) {
+                //logger.error(e) { "Error in packet $packet" }
+            }
         }
     }
 }

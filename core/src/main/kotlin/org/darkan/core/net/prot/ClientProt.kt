@@ -4,7 +4,6 @@ import org.darkan.core.clientwatch.MouseTrailStep
 import org.darkan.core.clientwatch.ReflectionResponseCode
 import org.darkan.core.type.Preference
 import world.gregs.voidps.type.Tile
-import java.awt.Color
 
 interface ClientProt
 

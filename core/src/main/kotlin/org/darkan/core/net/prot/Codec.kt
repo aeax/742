@@ -3,10 +3,13 @@ package org.darkan.core.net.prot
 import io.ktor.utils.io.*
 import kotlinx.io.Source
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.full.primaryConstructor
 
 class Codec {
     val serverProts = mutableMapOf<KClass<out ServerProt>, ServerProtCodec>()
     val clientProtsByOpcode = mutableMapOf<Int, ClientProtCodec<*>>()
+    private val opcodeToClassMap = mutableMapOf<Int, KClass<out ClientProt>>()
 
     data class ServerProtCodec(
         val opcode: Int,
@@ -16,7 +19,8 @@ class Codec {
 
     data class ClientProtCodec<T : ClientProt>(
         val size: ProtSize,
-        val decoder: (suspend Source.(Int) -> T)?
+        val decoder: (suspend Source.(Int) -> T)?,
+        val protClass: KClass<T>
     )
 
     internal inline fun <reified T : ServerProt> serverProt(opcode: Int, size: ProtSize = ProtSize.Fixed(0), noinline encoder: (suspend T.(ByteWriteChannel) -> Unit)? = null) {
@@ -36,13 +40,19 @@ class Codec {
     }
 
     internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend Source.(Int) -> T)? = null) {
-        val codec = ClientProtCodec(size, decoder)
-        opcodes.forEach { opcode -> clientProtsByOpcode[opcode] = codec }
+        val codec = ClientProtCodec(size, decoder, T::class)
+        opcodes.forEach { opcode ->
+            clientProtsByOpcode[opcode] = codec
+            opcodeToClassMap[opcode] = T::class
+        }
     }
 
     internal inline fun <reified T : ClientProt> clientProt(opcodes: IntArray, size: Int, noinline decoder: (suspend Source.(Int) -> T)? = null) {
-        val codec = ClientProtCodec(ProtSize.Fixed(size), decoder)
-        opcodes.forEach { opcode -> clientProtsByOpcode[opcode] = codec }
+        val codec = ClientProtCodec(ProtSize.Fixed(size), decoder, T::class)
+        opcodes.forEach { opcode ->
+            clientProtsByOpcode[opcode] = codec
+            opcodeToClassMap[opcode] = T::class
+        }
     }
 
     internal inline fun <reified T : ClientProt> clientProt(opcode: Int, size: ProtSize = ProtSize.Fixed(0), noinline decoder: (suspend Source.() -> T)? = null) {
@@ -68,13 +78,42 @@ class Codec {
             codec.decoder != null -> codec.decoder.invoke(channel, opcode) as T
             codec.size is ProtSize.Fixed && codec.size.length == 0 ->
                 try {
-                    T::class.constructors.firstOrNull { it.parameters.isEmpty() }?.call()
-                        ?: error("No empty constructor found for packet type: ${T::class}")
+                    T::class.constructors.firstOrNull { it.parameters.isEmpty() }?.call() ?: error("No empty constructor found for packet type: ${T::class}")
                 } catch (e: Exception) {
                     error("Failed to create instance of empty packet ${T::class}: ${e.message}")
                 }
             else -> error("No decoder provided for non-empty packet type: ${T::class}")
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T : ClientProt> createInstanceForOpcode(opcode: Int): T? {
+        val protClass = opcodeToClassMap[opcode] ?: return null
+
+        return try {
+            if (protClass.isValue) {
+                val constructor = protClass.primaryConstructor
+                return if (constructor != null) createValueClassInstance(constructor) as T else null
+            } else {
+                val constructor = protClass.constructors.firstOrNull { it.parameters.isEmpty() }
+                return constructor?.call() as T
+            }
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
+    private fun <T : Any> createValueClassInstance(constructor: KFunction<T>): T {
+        val args = mutableMapOf<kotlin.reflect.KParameter, Any?>()
+        for (param in constructor.parameters) {
+            when (param.type.classifier) {
+                Int::class -> args[param] = 0
+                String::class -> args[param] = ""
+                Boolean::class -> args[param] = false
+                else -> args[param] = null
+            }
+        }
+        return constructor.callBy(args)
     }
 
     suspend fun encodeServerProt(prot: ServerProt, output: ByteWriteChannel) {
