@@ -151,7 +151,7 @@ data class ClanChannelKickUser(val guest: Boolean, val pid: Int, val username: S
 @JvmInline value class WorldMapClick(val tile: Tile) : ClientProt
 @JvmInline value class SendPreferences(val preferences: Map<Preference, Int>) : ClientProt
 @JvmInline value class TransmitvarVerifyId(val id: Int) : ClientProt
-@JvmInline value class RequestWorldList(val worldId: Int) : ClientProt
+@JvmInline value class RequestWorldList(val worldlistVersion: Int) : ClientProt
 
 // Reporting/Bug Tracking
 data class ReportAbuse(val username: String, val type: Int, val mute: Boolean, val reason: String) : ClientProt

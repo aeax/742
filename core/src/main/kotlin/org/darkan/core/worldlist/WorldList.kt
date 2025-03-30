@@ -2,7 +2,10 @@ package org.darkan.core.worldlist
 
 class WorldList(val maxWorlds: Int) {
     private val worlds = sortedMapOf<Int, World>()
-    internal var revision = 0
+    private var _revision = 10
+
+    val revision: Int
+        get() = _revision
 
     fun get(number: Int): World? = synchronized(worlds) {
         worlds[number] ?: worlds[number]
@@ -12,7 +15,7 @@ class WorldList(val maxWorlds: Int) {
         var orig = worlds.remove(number)
         if (orig != null) {
             updateIndices()
-            revision++
+            _revision++
         }
         return orig
     }
@@ -20,7 +23,7 @@ class WorldList(val maxWorlds: Int) {
     fun put(number: Int, world: World) = synchronized(worlds) {
         worlds[number] = world
         updateIndices()
-        revision++
+        _revision++
     }
 
     fun getWorldArray(): Array<World> = synchronized(worlds) {

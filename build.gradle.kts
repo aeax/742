@@ -67,5 +67,7 @@ subprojects {
         implementation("org.mongodb:mongodb-driver-core:5.3.1")
         implementation("it.unimi.dsi:fastutil:8.5.15")
         implementation("com.trivago:fastutil-concurrent-wrapper:0.2.2")
+
+        implementation("io.github.classgraph:classgraph:4.8.179")
     }
 }

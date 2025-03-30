@@ -3,23 +3,30 @@ package org.darkan.lobby.web.model
 import io.ktor.utils.io.*
 import kotlinx.coroutines.channels.Channel
 import org.darkan.core.Logger.logDebug
+import org.darkan.core.Logger.logError
 import org.darkan.core.Logger.logSevere
+import org.darkan.core.generateRandomString
 import org.darkan.core.net.Session
 import org.darkan.core.net.prot.ClientProt
 import org.darkan.core.net.prot.LobbyLoginDetails
 import org.darkan.core.net.prot.ProtSize
+import org.darkan.core.net.prot.WorldListPacket
+import org.darkan.core.net.prot.handler.PacketHandlers
 import org.darkan.core.type.Account
 import org.darkan.core.type.Vars
+import org.darkan.lobby.Lobby
 import world.gregs.voidps.buffer.readUByte
 import world.gregs.voidps.buffer.readUShort
 
 class LobbyPlayer(val session: Session, val account: Account) {
     val readChannel = Channel<ClientProt>(capacity = 50)
     val vars = Vars().setSession(session)
+    val worldLoginToken = generateRandomString()
 
     suspend fun login(read: ByteReadChannel) {
         try {
-            session.send(LobbyLoginDetails(account, "982938jf"), noIsaac = true)
+            session.send(LobbyLoginDetails(account, worldLoginToken), noIsaac = true)
+            session.send(WorldListPacket(Lobby.worldList, true, false))
             session.flush()
             vars.setVar(281, 1000)
             vars.setVar(2528, 1)
@@ -62,17 +69,18 @@ class LobbyPlayer(val session: Session, val account: Account) {
             }
             logDebug("Decoded packet data: $packetData")
             readChannel.send(packetData)
+            handleDecodedPackets()
         }
     }
 
-    fun handleDecodedPackets() {
+    suspend fun handleDecodedPackets() {
         for (i in 0 until 50) {
             val packet = readChannel.tryReceive().getOrNull() ?: break
             logDebug("Handling packet: $packet")
             try {
-                //handlers.handle(this, packet)
+                PacketHandlers.getHandler<LobbyPlayer>(packet.javaClass)?.handle(this, packet)
             } catch (e: Throwable) {
-                //logger.error(e) { "Error in packet $packet" }
+                logError("Failed to handle packet: $packet", e)
             }
         }
     }

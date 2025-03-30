@@ -831,7 +831,7 @@ fun register727() =
                     out.writeJagString(world.metadata.activity)
                 }
                 out.writeSmart(0)
-                out.writeSmart(worldList.maxWorlds)
+                out.writeSmart(worldList.maxWorlds+1)
                 out.writeSmart(size)
                 for (world in worlds) {
                     out.writeSmart(world.metadata.number)
