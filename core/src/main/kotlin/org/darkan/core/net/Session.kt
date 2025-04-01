@@ -3,12 +3,19 @@ package org.darkan.core.net
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.ByteReadPacket
 import io.ktor.utils.io.core.remaining
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.Source
+import org.darkan.core.EnvVars
+import org.darkan.core.Logger.logDebug
+import org.darkan.core.Logger.logSevere
 import org.darkan.core.Logger.logWarn
+import org.darkan.core.net.prot.ClientProt
 import org.darkan.core.net.prot.Codec
 import org.darkan.core.net.prot.ProtSize
 import org.darkan.core.net.prot.ServerProt
+import world.gregs.voidps.buffer.readUByte
+import world.gregs.voidps.buffer.readUShort
 import world.gregs.voidps.buffer.writeByte
 import world.gregs.voidps.buffer.writeSmart
 
@@ -20,6 +27,8 @@ open class Session(
     val codec: Codec,
 ) {
     enum class State { CONNECTED, LOST_CONNECTION, DISCONNECTED }
+
+    val readChannel = Channel<ClientProt>(capacity = EnvVars.packetQueueCapacity)
 
     var disconnected: Boolean = false
     private var disconnect: (() -> Unit)? = null
@@ -60,6 +69,31 @@ open class Session(
     open suspend fun flush() {
         if (disconnected) return
         write.flush()
+    }
+
+    suspend fun readPackets(read: ByteReadChannel) {
+        while (!disconnected) {
+            val cipher = isaacIn.nextInt()
+            val opcode = (read.readUByte() - cipher) and 0xff
+            val clientProt = codec.clientProtsByOpcode[opcode]
+            if (clientProt == null) {
+                logSevere("Missing ClientProt with opcode $opcode")
+                return
+            }
+            val size = when (clientProt.size) {
+                is ProtSize.Fixed -> clientProt.size.length
+                ProtSize.VarByte -> read.readUByte()
+                ProtSize.VarShort -> read.readUShort()
+            }
+            val packet = read.readPacket(size)
+
+            val packetData = clientProt.decoder?.invoke(packet, opcode) ?: codec.createInstanceForOpcode<ClientProt>(opcode)
+            if (packetData == null) {
+                logSevere("Failed to create packet instance for opcode $opcode")
+                continue
+            }
+            readChannel.send(packetData)
+        }
     }
 
     open suspend fun send(serverProt: ServerProt, noIsaac: Boolean = false) {

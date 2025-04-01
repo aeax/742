@@ -1,25 +1,19 @@
 package org.darkan.lobby.web.model
 
 import io.ktor.utils.io.*
-import kotlinx.coroutines.channels.Channel
+import org.darkan.core.EnvVars
 import org.darkan.core.Logger.logDebug
 import org.darkan.core.Logger.logError
-import org.darkan.core.Logger.logSevere
 import org.darkan.core.generateRandomString
 import org.darkan.core.net.Session
-import org.darkan.core.net.prot.ClientProt
 import org.darkan.core.net.prot.LobbyLoginDetails
-import org.darkan.core.net.prot.ProtSize
 import org.darkan.core.net.prot.WorldListPacket
 import org.darkan.core.net.prot.handler.PacketHandlers
 import org.darkan.core.type.Account
 import org.darkan.core.type.Vars
 import org.darkan.lobby.Lobby
-import world.gregs.voidps.buffer.readUByte
-import world.gregs.voidps.buffer.readUShort
 
 class LobbyPlayer(val session: Session, val account: Account) {
-    val readChannel = Channel<ClientProt>(capacity = 50)
     val vars = Vars().setSession(session)
     val worldLoginToken = generateRandomString()
 
@@ -27,7 +21,6 @@ class LobbyPlayer(val session: Session, val account: Account) {
         try {
             session.send(LobbyLoginDetails(account, worldLoginToken), noIsaac = true)
             session.send(WorldListPacket(Lobby.worldList, true, false))
-            session.flush()
             vars.setVar(281, 1000)
             vars.setVar(2528, 1)
             vars.setVar(2567, 1)
@@ -38,44 +31,16 @@ class LobbyPlayer(val session: Session, val account: Account) {
             vars.setVarc(1919, 1) // set email to validated
             vars.setVarBit(11162, 1)
             vars.syncVarsToClient()
-            session.flush()
-            readPackets(read)
+            session.readPackets(read)
         } finally {
             session.exit()
             session.disconnect()
         }
     }
 
-    suspend fun readPackets(read: ByteReadChannel) {
-        while (!session.disconnected) {
-            val cipher = session.isaacIn.nextInt()
-            val opcode = (read.readUByte() - cipher) and 0xff
-            val clientProt = session.codec.clientProtsByOpcode[opcode]
-            if (clientProt == null) {
-                logSevere("Missing ClientProt with opcode $opcode")
-                return
-            }
-            val size = when (clientProt.size) {
-                is ProtSize.Fixed -> (clientProt.size as ProtSize.Fixed).length
-                ProtSize.VarByte -> read.readUByte()
-                ProtSize.VarShort -> read.readUShort()
-            }
-            val packet = read.readPacket(size)
-
-            val packetData = clientProt.decoder?.invoke(packet, opcode) ?: session.codec.createInstanceForOpcode<ClientProt>(opcode)
-            if (packetData == null) {
-                logSevere("Failed to create packet instance for opcode $opcode")
-                continue
-            }
-            logDebug("Decoded packet data: $packetData")
-            readChannel.send(packetData)
-            handleDecodedPackets()
-        }
-    }
-
     suspend fun handleDecodedPackets() {
-        for (i in 0 until 50) {
-            val packet = readChannel.tryReceive().getOrNull() ?: break
+        for (i in 0 until EnvVars.packetQueueCapacity) {
+            val packet = session.readChannel.tryReceive().getOrNull() ?: break
             logDebug("Handling packet: $packet")
             try {
                 PacketHandlers.getHandler<LobbyPlayer>(packet.javaClass)?.handle(this, packet)

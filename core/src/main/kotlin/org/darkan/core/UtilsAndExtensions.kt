@@ -2,7 +2,9 @@ package org.darkan.core
 
 import io.github.classgraph.ClassGraph
 import java.lang.reflect.Method
-import java.util.Locale
+import java.text.NumberFormat
+import java.util.*
+import kotlin.math.roundToInt
 
 object UtilsAndExtensions {
 
@@ -39,6 +41,34 @@ fun generateRandomString(length: Int = 50): String {
         .map { charPool.random() }
         .joinToString("")
 }
+
+/**
+ * Tick time extensions
+ */
+
+fun Double.ticksToTimeString(): String = this.roundToInt().ticksToTimeString()
+fun Int.ticksToTimeString(): String = this.toLong().ticksToTimeString()
+fun Long.ticksToTimeString(): String = toMillisTimeString(this * 600)
+
+private fun toMillisTimeString(millis: Long): String {
+    var seconds = (millis / 1000).toInt()
+    var minutes = seconds / 60
+    val hours = minutes / 60
+
+    minutes -= hours * 60
+    seconds -= (hours * 60 * 60) + (minutes * 60)
+
+    val parts = mutableListOf<String>()
+    if (hours > 0) parts += "$hours hours"
+    if (minutes > 0) parts += "$minutes minutes"
+    if (seconds > 0) parts += "$seconds seconds"
+
+    return (parts.joinToString(" ").ifEmpty { "moment or two" } + ".")
+}
+
+fun Int.formatNumber() = NumberFormat.getNumberInstance(Locale.US).format(toLong())
+fun Long.formatNumber() = NumberFormat.getNumberInstance(Locale.US).format(this)
+fun Double.formatNumber() = NumberFormat.getNumberInstance(Locale.US).format(toLong())
 
 /**
  * Finds all methods with a specific annotation in the given package

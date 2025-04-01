@@ -1,8 +1,15 @@
 package org.darkan.core.worldlist
 
+import org.darkan.core.EnvVars
+
 class WorldList(val maxWorlds: Int) {
     private val worlds = sortedMapOf<Int, World>()
     private var _revision = 10
+
+    init {
+        if (EnvVars.debug)
+            put(300, World(WorldMetadata(300, "localhost", 43595, "localhost:43595", Country.USA, false, true, true, false, false)))
+    }
 
     val revision: Int
         get() = _revision

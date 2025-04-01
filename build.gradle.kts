@@ -57,6 +57,9 @@ subprojects {
         implementation("io.ktor:ktor-server-status-pages:${findProperty("ktorVersion")}")
         implementation("io.ktor:ktor-server-request-validation:${findProperty("ktorVersion")}")
         implementation("io.ktor:ktor-serialization-kotlinx-json:${findProperty("ktorVersion")}")
+        implementation("io.ktor:ktor-client-core:${findProperty("ktorVersion")}")
+        implementation("io.ktor:ktor-client-cio:${findProperty("ktorVersion")}")
+        implementation("io.ktor:ktor-client-content-negotiation:${findProperty("ktorVersion")}")
 
         implementation("de.mkammerer:argon2-jvm:2.12")
         implementation("io.github.cdimascio:dotenv-kotlin:6.5.0")

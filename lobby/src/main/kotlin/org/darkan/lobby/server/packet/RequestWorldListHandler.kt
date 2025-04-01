@@ -9,6 +9,5 @@ import org.darkan.lobby.web.model.LobbyPlayer
 class RequestWorldListHandler : PacketHandler<LobbyPlayer, RequestWorldList> {
     override suspend fun handle(player: LobbyPlayer, packet: RequestWorldList) {
         player.session.send(WorldListPacket(Lobby.worldList, packet.worldlistVersion != Lobby.worldList.revision, false))
-        player.session.flush()
     }
 }

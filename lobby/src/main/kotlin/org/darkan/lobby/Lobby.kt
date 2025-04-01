@@ -7,20 +7,22 @@ import kotlinx.coroutines.*
 import org.darkan.core.EnvVars
 import org.darkan.core.Logger
 import org.darkan.core.Logger.logInfo
+import org.darkan.core.engine.EngineLoop
+import org.darkan.core.formatNumber
 import org.darkan.core.net.JS5Server
 import org.darkan.core.net.Session
 import org.darkan.core.net.prot.handler.PacketHandlers
-import org.darkan.core.worldlist.Country
+import org.darkan.core.net.web.DiscordWebhook
+import org.darkan.core.ticksToTimeString
 import org.darkan.core.worldlist.World
 import org.darkan.core.worldlist.WorldList
-import org.darkan.core.worldlist.WorldMetadata
 import org.darkan.lobby.server.LobbyServer
+import org.darkan.lobby.web.model.LobbyPlayer
 import org.darkan.lobby.web.module
 import world.gregs.voidps.cache.Cache
-import world.gregs.voidps.cache.Index
 import world.gregs.voidps.cache.file.FileProvider
 import world.gregs.voidps.cache.file.prefetchKeys
-import world.gregs.voidps.cache.secure.Huffman
+import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
@@ -34,24 +36,12 @@ object Lobby : CoroutineScope {
     private lateinit var httpServer: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
     private lateinit var lobbyServer: LobbyServer
 
-    val worldList = run {
-        val worlds = WorldList(300)
-        worlds.put(1, World(WorldMetadata(1, "prod.darkan.org", 43595, "Darkan Prod", Country.USA, false, true, true, false, false)))
-        worlds.put(2, World(WorldMetadata(2, "dev.darkan.org", 43595, "Darkan Dev", Country.USA, false, true, true, false, false)))
-        worlds.put(3, World(WorldMetadata(3, "google.com", 43595, "Google", Country.USA, false, true, true, false, false)))
-        worlds.put(4, World(WorldMetadata(4, "1.1.1.1", 43595, "Cloudflare", Country.USA, false, true, true, false, false)))
-        worlds.put(5, World(WorldMetadata(5, "runescape.com", 43595, "RuneScape", Country.USA, false, true, true, false, false)))
-        worlds.put(6, World(WorldMetadata(6, "world2.runescape.com", 43595, "RuneScape (East Coast)", Country.USA, false, true, true, false, false)))
-        worlds.put(7, World(WorldMetadata(7, "world14.runescape.com", 43595, "RuneScape (West Coast)", Country.USA, false, true, true, false, false)))
-        worlds.put(8, World(WorldMetadata(8, "world15.runescape.com", 43595, "RuneScape (Australia)", Country.USA, false, true, true, false, false)))
-        worlds.put(9, World(WorldMetadata(9, "world19.runescape.com", 43595, "RuneScape (Netherlands)", Country.USA, false, true, true, false, false)))
-        worlds.put(10, World(WorldMetadata(10, "world28.runescape.com", 43595, "RuneScape (Poland)", Country.USA, false, true, true, false, false)))
-        worlds.put(300, World(WorldMetadata(300, "localhost", 43595, "localhost:43595", Country.USA, false, true, true, false, false)))
-        worlds
-    }
+    val worldList = WorldList(300)
     private val accountCreationSessions = ConcurrentHashMap<String, Session>()
-    private val lobbyPlayers = ConcurrentHashMap<String, Session>()
+    private val lobbyPlayers = ConcurrentHashMap<String, LobbyPlayer>()
+    private lateinit var lobbyEngineLoop: EngineLoop
 
+    @OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
     fun start() {
         logInfo("Starting application services...")
         cache = Cache.get()
@@ -62,7 +52,14 @@ object Lobby : CoroutineScope {
         runBlocking {
             startLobbyServer()
         }
-
+        lobbyEngineLoop = EngineLoop(
+            arrayOf(
+                processInput,
+                flushPlayers
+            ),
+            ::reportTickConcern
+        )
+        lobbyEngineLoop.start(CoroutineScope(newSingleThreadContext("Lobby engine loop")))
         logInfo("All services started successfully")
     }
 
@@ -98,4 +95,51 @@ object Lobby : CoroutineScope {
     }
 
     fun removeLobbyPlayer(username: String) = lobbyPlayers.remove(username)
+    fun addLobbyPlayer(lobbyPlayer: LobbyPlayer) = lobbyPlayers.put(lobbyPlayer.account.username, lobbyPlayer)
+
+    val processInput = Runnable {
+        runBlocking {
+            lobbyPlayers.values.forEach { it.handleDecodedPackets() }
+        }
+    }
+
+    val flushPlayers = Runnable {
+        runBlocking {
+            lobbyPlayers.values.forEach { it.session.flush() }
+            accountCreationSessions.values.forEach { it.flush() }
+        }
+    }
+
+    fun reportTickConcern(actualTime: Long, stepTimes: Map<String, Long>) {
+        val memoryBean = ManagementFactory.getMemoryMXBean()
+        val heap = memoryBean.heapMemoryUsage
+        val nonHeap = memoryBean.nonHeapMemoryUsage
+
+        val heapUsed = heap.used / 1024 / 1024
+        val nonHeapUsed = nonHeap.used / 1024 / 1024
+        val totalUsed = heapUsed + nonHeapUsed
+        val maxMemory = (heap.max + nonHeap.max) / 1024 / 1024
+        val usagePercent = (totalUsed.toDouble() / maxMemory) * 100
+
+        val content = buildString {
+            appendLine("__**Tick concern**__")
+            appendLine("__**Lobby Data**__")
+            appendLine("```")
+            appendLine("Lobby${EnvVars.serverName} ${if (EnvVars.debug) "(debug)" else ""}")
+            appendLine("Uptime: ${lobbyEngineLoop.uptimeTicks.ticksToTimeString()}")
+            appendLine("Account creation sessions: ${accountCreationSessions.size.formatNumber()}")
+            appendLine("Player sessions: ${lobbyPlayers.size.formatNumber()}")
+            appendLine("```")
+            appendLine("__**Tick Time: ${actualTime}ms (min: ${lobbyEngineLoop.lowestMillis.formatNumber()}ms avg: ${lobbyEngineLoop.averageMillis.formatNumber()}ms max: ${lobbyEngineLoop.highestMillis.formatNumber()}ms)**__")
+            appendLine("```")
+            for (key in stepTimes.keys)
+                appendLine("$key: ${stepTimes[key]}")
+            appendLine("```")
+            appendLine("__**JVM Stats:**__")
+            appendLine("```")
+            appendLine("Total JVM memory usage: ${totalUsed.formatNumber()}mb/${maxMemory.formatNumber()}mb (${usagePercent.formatNumber()}%)")
+            appendLine("```")
+        }
+        DiscordWebhook.sendStaffMessage(content)
+    }
 }

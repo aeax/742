@@ -206,6 +206,8 @@ class LobbyServer(val js5: JS5Server) {
         val session = initSession(output, isaacKeys, ip, codec)
         session.onDisconnected { Lobby.removeLobbyPlayer(username) }
         val lobbyPlayer = LobbyPlayer(session, account)
+        Lobby.addLobbyPlayer(lobbyPlayer)
+        session.onDisconnected { Lobby.removeLobbyPlayer(username) }
         lobbyPlayer.login(input)
     }
 
