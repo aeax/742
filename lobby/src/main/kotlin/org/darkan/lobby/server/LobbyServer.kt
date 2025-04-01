@@ -97,6 +97,7 @@ class LobbyServer(val js5: JS5Server) {
                 when (val reqOpcode = input.readByte().toInt()) {
                     RequestOpcode.CONNECT_LOGIN -> init(input, output, ip)
                     RequestOpcode.JS5_INIT -> js5.init(input, output, ip)
+                    //RequestOpcode.ACCOUNT_CREATION -> initAccountCreation(input, output, ip)
                     else -> {
                         logTrace("Invalid request opcode: $reqOpcode")
                         output.finish(ResponseOpcode.INVALID_LOGIN_SERVER)

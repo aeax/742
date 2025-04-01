@@ -9,6 +9,7 @@ import kotlinx.serialization.json.put
 import org.darkan.core.net.web.installCoreValidators
 import org.darkan.core.net.web.installExceptions
 import org.darkan.lobby.web.controller.AccountsController
+import org.darkan.lobby.web.controller.WorldListController
 
 fun Application.configureRouting() {
     routing {
@@ -21,5 +22,6 @@ fun Application.configureRouting() {
         }
 
         AccountsController.registerRoutes(this)
+        WorldListController.registerRoutes(this)
     }
 }

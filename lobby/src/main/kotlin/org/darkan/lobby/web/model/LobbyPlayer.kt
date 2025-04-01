@@ -7,6 +7,7 @@ import org.darkan.core.Logger.logError
 import org.darkan.core.generateRandomString
 import org.darkan.core.net.Session
 import org.darkan.core.net.prot.LobbyLoginDetails
+import org.darkan.core.net.prot.Ping
 import org.darkan.core.net.prot.WorldListPacket
 import org.darkan.core.net.prot.handler.PacketHandlers
 import org.darkan.core.type.Account
@@ -41,7 +42,8 @@ class LobbyPlayer(val session: Session, val account: Account) {
     suspend fun handleDecodedPackets() {
         for (i in 0 until EnvVars.packetQueueCapacity) {
             val packet = session.readChannel.tryReceive().getOrNull() ?: break
-            logDebug("Handling packet: $packet")
+            if (packet !is Ping)
+                logDebug("Handling packet: $packet")
             try {
                 PacketHandlers.getHandler<LobbyPlayer>(packet.javaClass)?.handle(this, packet)
             } catch (e: Throwable) {

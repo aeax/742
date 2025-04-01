@@ -1,7 +1,9 @@
 package org.darkan.core.worldlist
 
+import kotlinx.serialization.Serializable
 import java.lang.System.currentTimeMillis
 
+@Serializable
 class World(val metadata: WorldMetadata) {
     var index = 0
     var offline = false

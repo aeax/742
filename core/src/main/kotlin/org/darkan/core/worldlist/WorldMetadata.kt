@@ -1,5 +1,8 @@
 package org.darkan.core.worldlist
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class WorldMetadata(
     val number: Int,
     val ipAddress: String,

@@ -7,6 +7,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.darkan.core.EnvVars
 import org.darkan.core.Logger.logErrorToDatabase
+import org.darkan.core.Logger.logInfo
 import java.util.concurrent.TimeUnit
 import kotlin.Long
 import kotlin.properties.Delegates

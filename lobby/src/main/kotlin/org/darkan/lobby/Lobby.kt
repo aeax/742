@@ -37,7 +37,7 @@ object Lobby : CoroutineScope {
     private lateinit var lobbyServer: LobbyServer
 
     val worldList = WorldList(300)
-    private val accountCreationSessions = ConcurrentHashMap<String, Session>()
+    private val accountCreationSessions = ConcurrentHashMap.newKeySet<Session>()
     private val lobbyPlayers = ConcurrentHashMap<String, LobbyPlayer>()
     private lateinit var lobbyEngineLoop: EngineLoop
 
@@ -55,7 +55,7 @@ object Lobby : CoroutineScope {
         lobbyEngineLoop = EngineLoop(
             arrayOf(
                 processInput,
-                flushPlayers
+                flushOutgoingNetworkSessions
             ),
             ::reportTickConcern
         )
@@ -94,8 +94,11 @@ object Lobby : CoroutineScope {
         lobbyServer.start()
     }
 
-    fun removeLobbyPlayer(username: String) = lobbyPlayers.remove(username)
     fun addLobbyPlayer(lobbyPlayer: LobbyPlayer) = lobbyPlayers.put(lobbyPlayer.account.username, lobbyPlayer)
+    fun removeLobbyPlayer(username: String) = lobbyPlayers.remove(username)
+
+    fun addAccountCreation(session: Session) = accountCreationSessions.add(session)
+    fun removeAccountCreation(session: Session) = accountCreationSessions.remove(session)
 
     val processInput = Runnable {
         runBlocking {
@@ -103,10 +106,10 @@ object Lobby : CoroutineScope {
         }
     }
 
-    val flushPlayers = Runnable {
+    val flushOutgoingNetworkSessions = Runnable {
         runBlocking {
             lobbyPlayers.values.forEach { it.session.flush() }
-            accountCreationSessions.values.forEach { it.flush() }
+            accountCreationSessions.forEach { it.flush() }
         }
     }
 

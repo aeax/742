@@ -8,10 +8,10 @@ class WorldList(val maxWorlds: Int) {
 
     init {
         if (EnvVars.debug)
-            put(300, World(WorldMetadata(300, "localhost", 43595, "localhost:43595", Country.USA, false, true, true, false, false)))
+            put(World(WorldMetadata(300, "localhost", 43595, "localhost:43595", Country.USA, false, true, true, false, false)))
     }
 
-    val revision: Int
+    val revision
         get() = _revision
 
     fun get(number: Int): World? = synchronized(worlds) {
@@ -27,8 +27,8 @@ class WorldList(val maxWorlds: Int) {
         return orig
     }
 
-    fun put(number: Int, world: World) = synchronized(worlds) {
-        worlds[number] = world
+    fun put(world: World) = synchronized(worlds) {
+        worlds[world.metadata.number] = world
         updateIndices()
         _revision++
     }
