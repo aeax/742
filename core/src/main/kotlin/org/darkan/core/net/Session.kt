@@ -7,7 +7,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.Source
 import org.darkan.core.EnvVars
-import org.darkan.core.Logger.logDebug
 import org.darkan.core.Logger.logSevere
 import org.darkan.core.Logger.logWarn
 import org.darkan.core.net.prot.ClientProt
@@ -71,10 +70,10 @@ open class Session(
         write.flush()
     }
 
-    suspend fun readPackets(read: ByteReadChannel) {
+    suspend fun readPackets(input: ByteReadChannel) {
         while (!disconnected) {
             val cipher = isaacIn.nextInt()
-            val opcode = (read.readUByte() - cipher) and 0xff
+            val opcode = (input.readUByte() - cipher) and 0xff
             val clientProt = codec.clientProtsByOpcode[opcode]
             if (clientProt == null) {
                 logSevere("Missing ClientProt with opcode $opcode")
@@ -82,10 +81,10 @@ open class Session(
             }
             val size = when (clientProt.size) {
                 is ProtSize.Fixed -> clientProt.size.length
-                ProtSize.VarByte -> read.readUByte()
-                ProtSize.VarShort -> read.readUShort()
+                ProtSize.VarByte -> input.readUByte()
+                ProtSize.VarShort -> input.readUShort()
             }
-            val packet = read.readPacket(size)
+            val packet = input.readPacket(size)
 
             val packetData = clientProt.decoder?.invoke(packet, opcode) ?: codec.createInstanceForOpcode<ClientProt>(opcode)
             if (packetData == null) {

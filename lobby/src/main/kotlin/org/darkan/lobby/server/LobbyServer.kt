@@ -7,7 +7,6 @@ import io.ktor.utils.io.*
 import io.ktor.utils.io.CancellationException
 import io.ktor.utils.io.core.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.SendChannel
 import kotlinx.io.EOFException
 import kotlinx.io.readByteArray
 import kotlinx.io.readUByte
@@ -16,14 +15,12 @@ import org.darkan.core.EnvVars
 import org.darkan.core.Logger.logError
 import org.darkan.core.Logger.logInfo
 import org.darkan.core.Logger.logTrace
+import org.darkan.core.Logger.logWarn
 import org.darkan.core.crypt.Crypto
 import org.darkan.core.formatPlayerNameForProtocol
-import org.darkan.core.mongo.MongoDB
 import org.darkan.core.mongo.collections.Accounts
 import org.darkan.core.net.*
 import org.darkan.core.net.prot.Codec
-import org.darkan.core.net.prot.ServerProt
-import org.darkan.core.type.Account
 import org.darkan.lobby.Lobby
 import org.darkan.lobby.web.model.LobbyPlayer
 import world.gregs.voidps.buffer.*
@@ -97,7 +94,7 @@ class LobbyServer(val js5: JS5Server) {
                 when (val reqOpcode = input.readByte().toInt()) {
                     RequestOpcode.CONNECT_LOGIN -> init(input, output, ip)
                     RequestOpcode.JS5_INIT -> js5.init(input, output, ip)
-                    //RequestOpcode.ACCOUNT_CREATION -> initAccountCreation(input, output, ip)
+                    RequestOpcode.ACCOUNT_CREATION -> initAccountCreation(input, output, ip)
                     else -> {
                         logTrace("Invalid request opcode: $reqOpcode")
                         output.finish(ResponseOpcode.INVALID_LOGIN_SERVER)
@@ -205,11 +202,100 @@ class LobbyServer(val js5: JS5Server) {
         logInfo("Logging in $username")
         pendingLogins.remove(username)
         val session = initSession(output, isaacKeys, ip, codec)
-        session.onDisconnected { Lobby.removeLobbyPlayer(username) }
         val lobbyPlayer = LobbyPlayer(session, account)
         Lobby.addLobbyPlayer(lobbyPlayer)
         session.onDisconnected { Lobby.removeLobbyPlayer(username) }
         lobbyPlayer.login(input)
+    }
+
+    private suspend fun initAccountCreation(input: ByteReadChannel, output: ByteWriteChannel, ip: String) {
+        if (pendingLogins.size > 20) return output.finish(ResponseOpcode.LOGIN_SERVER_REJECTED_SESSION)
+        val size = input.readShort().toInt()
+        println("size: $size")
+        val packet = input.readPacket(size)
+        val major = packet.readShort().toInt()
+        val minor = packet.readShort().toInt()
+        println("major: $major minor: $minor")
+        val rsaSize = packet.readUShort().toInt()
+        val codec = Codec.get(major) ?: return output.finish(ResponseOpcode.GAME_UPDATE)
+        val sensitiveData = ByteReadPacket(RSA.crypt(packet.readByteArray(rsaSize), js5RsaMod, js5RsaExp))
+        if (sensitiveData.readUByte().toInt() != 10) return output.finish(ResponseOpcode.BAD_SESSION_ID)
+        val isaacKeys = IntArray(4) { sensitiveData.readInt() }
+        for (i in 1..10)
+            println("readInt: ${sensitiveData.readInt()}")
+        val idk = sensitiveData.readShort()
+        println("idk: $idk")
+        val xtea = packet.decryptXtea(isaacKeys)
+        val token = xtea.readRSString()
+        println("token: $token")
+        val idk2 = xtea.readShort()
+        println("idk2: $idk2")
+        val verificationNumber = xtea.readLong()
+        println("verificationNumber: $verificationNumber")
+        val token2 = xtea.readRSString()
+        println("token2: $token2")
+        val gameType = xtea.readUByte()
+        val language = xtea.readUByte()
+        xtea.skip(24)
+        if (xtea.readBoolean()) {
+            val loginServerToken = xtea.readRSString()
+            println("loginServerToken: $loginServerToken")
+        }
+        val success = xtea.readUByte() == 6.toUByte()
+        if (!success)
+            logWarn("Failed to parse machine info for account creation")
+        val os = xtea.readUByte()
+        val x64OS = xtea.readBoolean()
+        val idk4 = xtea.readUByte()
+        val osVendor = xtea.readUByte()
+        val javaVersion = xtea.readUByte()
+        val javaBuild = xtea.readUByte()
+        val javasubBuild = xtea.readUByte()
+        val idk5 = xtea.readUByte()
+        val maxMem = xtea.readUShort()
+        val processors = xtea.readUByte()
+        val ram = xtea.readMedium()
+        val cpuClock = xtea.readUShort()
+        val idk6 = xtea.readJagString()
+        println("idk6: $idk6")
+        val idk7 = xtea.readJagString()
+        println("idk7: $idk7")
+        val idk8 = xtea.readJagString()
+        println("idk8: $idk8")
+        val idk9 = xtea.readJagString()
+        println("idk9: $idk9")
+        val directXDriverDateMonth = xtea.readUByte()
+        val directXDriverDateYear = xtea.readUShort()
+        val cpuType: String = xtea.readJagString()
+        val cpuData: String = xtea.readJagString()
+        val cpuCores = xtea.readUByte()
+        val rawCPUInformation = xtea.readUByte()
+        val rawCPUInformationData = IntArray(3)
+        for (i in rawCPUInformationData.indices) rawCPUInformationData[i] = xtea.readInt()
+        val rawCPUInformation2 = xtea.readInt()
+        println("Remaining: ${xtea.remaining}")
+
+//        if (loginServerToken != EnvVars.loginServerToken) {
+//            logError("Login server token mismatch: ${EnvVars.loginServerToken}, $loginServerToken from $username")
+//            //return output.finish(ResponseOpcode.GAME_UPDATE)
+//        }
+//
+//        if (js5ServerToken != EnvVars.js5ServerToken) {
+//            logError("JS5 server token mismatch: ${EnvVars.js5ServerToken}, $js5ServerToken from $username")
+//            //return output.finish(ResponseOpcode.GAME_UPDATE)
+//        }
+//
+//        if (clientKey != EnvVars.clientKey) {
+//            logError("Client key mismatch: ${EnvVars.clientKey}, $clientKey from $username")
+//            //return output.finish(ResponseOpcode.GAME_UPDATE)
+//        }
+
+        logInfo("Account creation session started from $ip")
+        val session = initSession(output, isaacKeys, ip, codec)
+        session.onDisconnected { Lobby.removeAccountCreation(session) }
+        Lobby.addAccountCreation(session)
+        output.respond(ResponseOpcode.SUCCESS)
+        session.readPackets(input)
     }
 
     private fun initSession(write: ByteWriteChannel, isaacKeys: IntArray, hostname: String, codec: Codec): Session {
