@@ -34,6 +34,16 @@ object Accounts {
         ).firstOrNull()
     }
 
+    suspend fun exists(usernameOrEmail: String): Boolean {
+        val formatted = usernameOrEmail.formatPlayerNameForProtocol()
+        return collection.find(
+            or(
+                eq(Account::username.name, formatted),
+                eq(Account::email.name, formatted)
+            )
+        ).firstOrNull() != null
+    }
+
     suspend fun create(req: AccountCreateRequest): Account? {
         val formattedUsername = req.username.formatPlayerNameForProtocol()
         val formattedEmail = req.email.formatPlayerNameForProtocol()

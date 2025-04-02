@@ -17,6 +17,7 @@ import org.darkan.core.ticksToTimeString
 import org.darkan.core.worldlist.World
 import org.darkan.core.worldlist.WorldList
 import org.darkan.lobby.server.LobbyServer
+import org.darkan.lobby.web.model.AccountCreationSession
 import org.darkan.lobby.web.model.LobbyPlayer
 import org.darkan.lobby.web.module
 import world.gregs.voidps.cache.Cache
@@ -37,7 +38,7 @@ object Lobby : CoroutineScope {
     private lateinit var lobbyServer: LobbyServer
 
     val worldList = WorldList(300)
-    private val accountCreationSessions = ConcurrentHashMap.newKeySet<Session>()
+    private val accountCreationSessions = ConcurrentHashMap.newKeySet<AccountCreationSession>()
     private val lobbyPlayers = ConcurrentHashMap<String, LobbyPlayer>()
     private lateinit var lobbyEngineLoop: EngineLoop
 
@@ -97,19 +98,20 @@ object Lobby : CoroutineScope {
     fun addLobbyPlayer(lobbyPlayer: LobbyPlayer) = lobbyPlayers.put(lobbyPlayer.account.username, lobbyPlayer)
     fun removeLobbyPlayer(username: String) = lobbyPlayers.remove(username)
 
-    fun addAccountCreation(session: Session) = accountCreationSessions.add(session)
-    fun removeAccountCreation(session: Session) = accountCreationSessions.remove(session)
+    fun addAccountCreation(session: AccountCreationSession) = accountCreationSessions.add(session)
+    fun removeAccountCreation(session: AccountCreationSession) = accountCreationSessions.remove(session)
 
     val processInput = Runnable {
         runBlocking {
             lobbyPlayers.values.forEach { it.handleDecodedPackets() }
+            accountCreationSessions.forEach { it.handleDecodedPackets() }
         }
     }
 
     val flushOutgoingNetworkSessions = Runnable {
         runBlocking {
             lobbyPlayers.values.forEach { it.session.flush() }
-            accountCreationSessions.forEach { it.flush() }
+            accountCreationSessions.forEach { it.session.flush() }
         }
     }
 

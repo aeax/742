@@ -1,14 +1,13 @@
 package org.darkan.core
 
 import io.github.classgraph.ClassGraph
+import world.gregs.voidps.type.secureRandom
 import java.lang.reflect.Method
 import java.text.NumberFormat
 import java.util.*
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 import kotlin.math.roundToInt
-
-object UtilsAndExtensions {
-
-}
 
 private const val FNV1aPrime = 16777619u
 fun String.hashToShort(): Short {
@@ -25,6 +24,11 @@ val currentTimeTicks get() = System.currentTimeMillis() / 600L
 fun String.formatPlayerNameForProtocol(): String {
     return this.lowercase().replace(" ", "_")
 }
+
+val EMAIL_REGEX = Regex("[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", RegexOption.IGNORE_CASE)
+fun String.isValidEmail() = EMAIL_REGEX.matches(this)
+val USERNAME_REGEX = Regex("^[a-zA-Z0-9][a-zA-Z0-9_]{0,10}[a-zA-Z0-9]$")
+fun String.isValidAccountName() = this.length in 1..12 && !this.contains("__") && USERNAME_REGEX.matches(this)
 
 fun String.formatPlayerNameForDisplay(): String {
     return this.replace("_", " ")
@@ -69,6 +73,8 @@ private fun toMillisTimeString(millis: Long): String {
 fun Int.formatNumber() = NumberFormat.getNumberInstance(Locale.US).format(toLong())
 fun Long.formatNumber() = NumberFormat.getNumberInstance(Locale.US).format(this)
 fun Double.formatNumber() = NumberFormat.getNumberInstance(Locale.US).format(toLong())
+
+fun generateRandom24ByteArray(): ByteArray = ByteArray(24).apply { secureRandom.nextBytes(this) }
 
 /**
  * Finds all methods with a specific annotation in the given package

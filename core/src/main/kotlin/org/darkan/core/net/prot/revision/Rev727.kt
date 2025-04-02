@@ -15,6 +15,7 @@ import org.darkan.core.type.Preference
 import org.darkan.core.worldlist.World
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.Cache
+import world.gregs.voidps.cache.secure.CRC
 import world.gregs.voidps.type.Tile
 import java.io.ByteArrayOutputStream
 import java.io.ObjectOutputStream
@@ -884,7 +885,7 @@ fun register727() =
 
         // Account related protocols
         serverProt<CreateCheckEmailReply>(opcode = 1, size = 1) { out ->
-            // TODO: Implement serialization
+            out.writeByte(responseCode)
         }
 
         serverProt<CreateAccountReply>(opcode = 87, size = 1) { out ->
@@ -1127,7 +1128,8 @@ fun register727() =
         }
 
         serverProt<UpdateUid192>(opcode = 90, size = 28) { out ->
-            // TODO: Implement serialization
+            out.writeBytes(data)
+            out.writeInt(CRC.calculate(data))
         }
 
         serverProt<UpdateIgnoreList>(opcode = 97, size = ProtSize.VarShort) { out ->

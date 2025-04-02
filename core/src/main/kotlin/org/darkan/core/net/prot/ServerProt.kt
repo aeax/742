@@ -198,9 +198,7 @@ data class UpdateGESlot(val dummy: Int
     // TODO: Add fields based on analysis of opcode 57, size 20
 ) : ServerProt
 
-data class UpdateUid192(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 90, size 28
-) : ServerProt
+@JvmInline value class UpdateUid192(val data: ByteArray) : ServerProt
 
 data class UpdateIgnoreList(val dummy: Int
     // TODO: Add fields based on analysis of opcode 97, size -2
@@ -597,9 +595,7 @@ data class ChatFilterSettingsPrivateChat(val dummy: Int
 /**
  * Account related protocols
  */
-data class CreateCheckEmailReply(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 1, size 1
-) : ServerProt
+@JvmInline value class CreateCheckEmailReply(val responseCode: Int) : ServerProt
 
 data class CreateAccountReply(val dummy: Int
     // TODO: Add fields based on analysis of opcode 87, size 1

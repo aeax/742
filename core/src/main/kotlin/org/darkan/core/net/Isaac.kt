@@ -20,7 +20,7 @@ class Isaac(seed : IntArray) {
     private var accumulator = 0
     private var lastResult = 0
     private var counter = 0
-    private val seed : IntArray
+    val seed : IntArray
 
     init {
         for (i in seed.indices) {
