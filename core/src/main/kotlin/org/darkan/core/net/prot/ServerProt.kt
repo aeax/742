@@ -597,9 +597,19 @@ data class ChatFilterSettingsPrivateChat(val dummy: Int
  */
 @JvmInline value class CreateCheckEmailReply(val responseCode: Int) : ServerProt
 
-data class CreateAccountReply(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 87, size 1
-) : ServerProt
+enum class CreateAccountReplyOpcode(val value: Int) {
+    ERROR_CONTACTING_SERVER(1),
+    LOGIN(2),
+    CANNOT_CREATE_ACCOUNT_ATM(9),
+    UNEXPECTED_SERVER_RESPONSE(10),
+    EMAIL_ALREADY_IN_USE(20),
+    INVALID_EMAIL(21),
+    PLEASE_SUPPLY_VALID_PASS(30),
+    PASSWORDS_MAY_ONLY_CONTAIN_LETTERS_AND_NUMBERS(31),
+    PASSWORD_TOO_EASY(32)
+}
+
+@JvmInline value class CreateAccountReply(val code: CreateAccountReplyOpcode) : ServerProt
 
 data class UpdateDob(val dummy: Int
     // TODO: Add fields based on analysis of opcode 157, size 4

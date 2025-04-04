@@ -889,7 +889,7 @@ fun register727() =
         }
 
         serverProt<CreateAccountReply>(opcode = 87, size = 1) { out ->
-            // TODO: Implement serialization
+            out.writeByte(code.value)
         }
 
         serverProt<UpdateDob>(opcode = 157, size = 4) { out ->

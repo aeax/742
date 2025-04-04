@@ -27,7 +27,7 @@ class Isaac(seed : IntArray) {
             results[i] = seed[i]
         }
         init(true)
-        this.seed = seed
+        this.seed = seed.copyOf()
     }
 
     fun nextInt() : Int {

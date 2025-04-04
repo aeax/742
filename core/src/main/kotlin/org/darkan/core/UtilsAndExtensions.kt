@@ -3,6 +3,7 @@ package org.darkan.core
 import io.github.classgraph.ClassGraph
 import world.gregs.voidps.type.secureRandom
 import java.lang.reflect.Method
+import java.nio.charset.Charset
 import java.text.NumberFormat
 import java.util.*
 import java.util.regex.Matcher
@@ -26,9 +27,11 @@ fun String.formatPlayerNameForProtocol(): String {
 }
 
 val EMAIL_REGEX = Regex("[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", RegexOption.IGNORE_CASE)
-fun String.isValidEmail() = EMAIL_REGEX.matches(this)
+fun String.isValidEmail() = matches(EMAIL_REGEX)
 val USERNAME_REGEX = Regex("^[a-zA-Z0-9][a-zA-Z0-9_]{0,10}[a-zA-Z0-9]$")
-fun String.isValidAccountName() = this.length in 1..12 && !this.contains("__") && USERNAME_REGEX.matches(this)
+fun String.isValidAccountName() = this.length in 1..12 && !this.contains("__") && matches(USERNAME_REGEX)
+val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$")
+fun String.isValidPassword() = matches(PASSWORD_REGEX)
 
 fun String.formatPlayerNameForDisplay(): String {
     return this.replace("_", " ")

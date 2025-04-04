@@ -209,8 +209,6 @@ class LobbyServer(val js5: JS5Server) {
         val lobbyPlayer = LobbyPlayer(session, account)
         Lobby.addLobbyPlayer(lobbyPlayer)
         session.onDisconnected { Lobby.removeLobbyPlayer(username) }
-        if (randomDat.any { it != (-1).toByte() })
-            session.send(UpdateUid192(generateRandom24ByteArray()))
         lobbyPlayer.login(input)
     }
 
@@ -239,13 +237,9 @@ class LobbyServer(val js5: JS5Server) {
         val languageId = xtea.readUByte()
         val gameId = xtea.readUByte()
         val randomDat = xtea.readByteArray(24)
-        println("randomDat: ${randomDat.contentToString()}")
-        if (xtea.readBoolean()) {
-            val loginServerToken = xtea.readRSString()
-            println("loginServerToken: $loginServerToken")
-        }
+        if (xtea.readBoolean())
+            xtea.readRSString() //loginServerToken?
         val machineInfo = MachineInformation.parse(xtea)
-        println(machineInfo)
 
 //        if (loginServerToken != EnvVars.loginServerToken) {
 //            logError("Login server token mismatch: ${EnvVars.loginServerToken}, $loginServerToken from $username")

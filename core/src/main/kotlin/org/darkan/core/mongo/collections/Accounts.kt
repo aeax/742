@@ -44,6 +44,29 @@ object Accounts {
         ).firstOrNull() != null
     }
 
+    suspend fun createLobby(email: String, password: String): Account? {
+        val formattedEmail = email.formatPlayerNameForProtocol()
+        val existingAccount = collection.find(
+            or(
+                eq(Account::email.name, formattedEmail)
+            )
+        ).firstOrNull()
+        if (existingAccount != null) throw ConflictException("Account already exists")
+
+        val newAccount = Account(
+            username = formattedEmail,
+            email = formattedEmail,
+            passwordHash = Crypto.hashPasswordArgon2(password)
+        )
+
+        return try {
+            collection.insertOne(newAccount)
+            newAccount
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     suspend fun create(req: AccountCreateRequest): Account? {
         val formattedUsername = req.username.formatPlayerNameForProtocol()
         val formattedEmail = req.email.formatPlayerNameForProtocol()
