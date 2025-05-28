@@ -1,4 +1,4 @@
-package org.darkan.core.type
+package org.darkan.core.model
 
 enum class ChatMessageType(val value: Int) {
     UNFILTERABLE(0),

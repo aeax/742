@@ -10,8 +10,8 @@ import org.darkan.core.net.prot.LobbyLoginDetails
 import org.darkan.core.net.prot.Ping
 import org.darkan.core.net.prot.WorldListPacket
 import org.darkan.core.net.prot.handler.PacketHandlers
-import org.darkan.core.type.Account
-import org.darkan.core.type.Vars
+import org.darkan.core.model.Account
+import org.darkan.core.model.Vars
 import org.darkan.lobby.Lobby
 
 class LobbyPlayer(val session: Session, val account: Account) {

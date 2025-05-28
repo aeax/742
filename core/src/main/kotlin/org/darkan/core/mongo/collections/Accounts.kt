@@ -11,7 +11,7 @@ import org.darkan.core.formatPlayerNameForProtocol
 import org.darkan.core.mongo.MongoDB.database
 import org.darkan.core.net.web.AccountCreateRequest
 import org.darkan.core.net.web.ConflictException
-import org.darkan.core.type.Account
+import org.darkan.core.model.Account
 
 object Accounts {
     private val collection by lazy {

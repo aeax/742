@@ -1,4 +1,4 @@
-package org.darkan.core.type
+package org.darkan.core.model
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -10,7 +10,6 @@ import org.darkan.core.net.prot.setVarpPacket
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.Config
 import world.gregs.voidps.cache.Index
-import world.gregs.voidps.cache.definition.decoder.VarBitDecoder
 
 @Serializable
 class Vars(val vars: MutableMap<Int, Int> = HashMap()) {

@@ -15,7 +15,6 @@ import org.darkan.core.EnvVars
 import org.darkan.core.Logger.logError
 import org.darkan.core.Logger.logInfo
 import org.darkan.core.Logger.logTrace
-import org.darkan.core.Logger.logWarn
 import org.darkan.core.crypt.Crypto
 import org.darkan.core.formatPlayerNameForProtocol
 import org.darkan.core.generateRandom24ByteArray
@@ -23,7 +22,7 @@ import org.darkan.core.mongo.collections.Accounts
 import org.darkan.core.net.*
 import org.darkan.core.net.prot.Codec
 import org.darkan.core.net.prot.UpdateUid192
-import org.darkan.core.type.MachineInformation
+import org.darkan.core.model.MachineInformation
 import org.darkan.lobby.Lobby
 import org.darkan.lobby.web.model.AccountCreationSession
 import org.darkan.lobby.web.model.LobbyPlayer

@@ -2,7 +2,7 @@ package org.darkan.core.net.prot
 
 import org.darkan.core.clientwatch.MouseTrailStep
 import org.darkan.core.clientwatch.ReflectionResponseCode
-import org.darkan.core.type.Preference
+import org.darkan.core.model.Preference
 import world.gregs.voidps.type.Tile
 
 interface ClientProt

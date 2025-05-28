@@ -10,7 +10,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 import org.darkan.core.mongo.collections.Accounts
 import org.darkan.core.net.web.AccountCreateRequest
-import org.darkan.core.type.Account
+import org.darkan.core.model.Account
 
 private val passwordFields = arrayOf(Account::passwordHash.name, Account::password.name, Account::legacyPass.name)
 

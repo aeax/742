@@ -1,4 +1,4 @@
-package org.darkan.core.type
+package org.darkan.core.model
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable

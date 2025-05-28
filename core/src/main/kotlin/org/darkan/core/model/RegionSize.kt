@@ -1,4 +1,4 @@
-package org.darkan.core.type
+package org.darkan.core.model
 
 enum class RegionSize(var size: Int) {
     SIZE_104(104),

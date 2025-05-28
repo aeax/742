@@ -1,4 +1,4 @@
-package org.darkan.core.type
+package org.darkan.core.model
 
 enum class Preference(private val index: Int) {
     ANTI_ALIASING(1),

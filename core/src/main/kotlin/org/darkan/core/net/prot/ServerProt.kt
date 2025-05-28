@@ -3,25 +3,25 @@ package org.darkan.core.net.prot
 import org.darkan.core.clientwatch.ReflectionCheck
 import org.darkan.core.social.ChatMessage
 import org.darkan.core.social.QuickChatMessage
-import org.darkan.core.type.Account
-import org.darkan.core.type.ChatMessageType
-import org.darkan.core.type.RegionSize
+import org.darkan.core.model.Account
+import org.darkan.core.model.ChatMessageType
+import org.darkan.core.model.RegionSize
 import org.darkan.core.worldlist.WorldList
 import world.gregs.voidps.type.Tile
 
 interface ServerProt
 
-data class IfSetPlayerHead(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 0, size 4
+data class IfSetPlayerHead(val interfaceId: Int, val componentId: Int) : ServerProt
+
+data class IfSetPlayerHeadIgnoreWorn(val interfaceId: Int, val componentId: Int, val identiKit1: Int, val identiKit2: Int, val identiKit3: Int) : ServerProt
+
+data class IfSetPlayerModel(val dummy: Int
+    // TODO: Add fields based on analysis of opcode 72, size 4
 ) : ServerProt
 
-data class IfSetTextFont(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 7, size 8
-) : ServerProt
+data class IfSetTextFont(val interfaceId: Int, val componentId: Int, val fontId: Int) : ServerProt
 
-data class IfMoveSub(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 13, size 8
-) : ServerProt
+data class IfMoveSub(val fromInterfaceId: Int, val fromComponentId: Int, val toInterfaceId: Int, val toComponentId: Int) : ServerProt
 
 data class IfOpenSubActiveObject(val dummy: Int
     // TODO: Add fields based on analysis of opcode 23, size 32
@@ -71,10 +71,6 @@ data class IfOpenSubActiveNpc(val dummy: Int
     // TODO: Add fields based on analysis of opcode 34, size 25
 ) : ServerProt
 
-data class IfSetPlayerModel(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 72, size 4
-) : ServerProt
-
 data class IfCloseSub(val dummy: Int
     // TODO: Add fields based on analysis of opcode 78, size 4
 ) : ServerProt
@@ -101,10 +97,6 @@ data class IfSetEvents(val dummy: Int
 
 data class IfSetText(val dummy: Int
     // TODO: Add fields based on analysis of opcode 124, size -2
-) : ServerProt
-
-data class IfSetPlayerHeadIgnoreWorn(val dummy: Int
-    // TODO: Add fields based on analysis of opcode 130, size 10
 ) : ServerProt
 
 data class IfSetReTex(val dummy: Int

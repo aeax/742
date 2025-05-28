@@ -11,8 +11,8 @@ import org.darkan.core.clientwatch.ReflectionCheckType
 import org.darkan.core.clientwatch.ReflectionResponseCode
 import org.darkan.core.net.prot.*
 import org.darkan.core.social.QuickChatMessage
-import org.darkan.core.type.Preference
-import org.darkan.core.worldlist.World
+import org.darkan.core.toInterfaceHash
+import org.darkan.core.model.Preference
 import world.gregs.voidps.buffer.*
 import world.gregs.voidps.cache.Cache
 import world.gregs.voidps.cache.secure.CRC
@@ -939,15 +939,24 @@ fun register727() =
 
         // Interface/UI related
         serverProt<IfSetPlayerHead>(opcode = 0, size = 4) { out ->
-            // TODO: Implement serialization
+            out.writeIntLittle(toInterfaceHash(interfaceId, componentId))
+        }
+
+        serverProt<IfSetPlayerHeadIgnoreWorn>(opcode = 130, size = 10) { out ->
+            out.writeShortLittle(identiKit1)
+            out.writeShortAdd(identiKit2)
+            out.writeShortAdd(identiKit3)
+            out.writeIntInverseMiddle(toInterfaceHash(interfaceId, componentId))
         }
 
         serverProt<IfSetTextFont>(opcode = 7, size = 8) { out ->
-            // TODO: Implement serialization
+            out.writeInt(fontId)
+            out.writeIntMiddle(toInterfaceHash(interfaceId, componentId))
         }
 
         serverProt<IfMoveSub>(opcode = 13, size = 8) { out ->
-            // TODO: Implement serialization
+            out.writeIntInverseMiddle(toInterfaceHash(fromInterfaceId, fromComponentId))
+            out.writeInt(toInterfaceHash(toInterfaceId, toComponentId))
         }
 
         serverProt<IfOpenSubActiveObject>(opcode = 23, size = 32) { out ->
@@ -1027,10 +1036,6 @@ fun register727() =
         }
 
         serverProt<IfSetText>(opcode = 124, size = ProtSize.VarShort) { out ->
-            // TODO: Implement serialization
-        }
-
-        serverProt<IfSetPlayerHeadIgnoreWorn>(opcode = 130, size = 10) { out ->
             // TODO: Implement serialization
         }
 

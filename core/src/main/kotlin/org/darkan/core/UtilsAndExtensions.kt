@@ -3,12 +3,11 @@ package org.darkan.core
 import io.github.classgraph.ClassGraph
 import world.gregs.voidps.type.secureRandom
 import java.lang.reflect.Method
-import java.nio.charset.Charset
 import java.text.NumberFormat
 import java.util.*
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 import kotlin.math.roundToInt
+
+fun toInterfaceHash(interfaceId: Int, componentId: Int) = interfaceId shl 16 or componentId
 
 private const val FNV1aPrime = 16777619u
 fun String.hashToShort(): Short {

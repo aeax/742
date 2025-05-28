@@ -21,6 +21,11 @@ value class Tile(val id: Int) : Coordinate3D<Tile> {
     val regionLevel: RegionLevel
         get() = RegionLevel(x shr 6, y shr 6, level)
 
+    fun getCoordFaceX(sizeX: Int, sizeY: Int, rotation: Int) = x + ((if (rotation == 1 || rotation == 3) sizeY else sizeX) - 1) / 2
+    fun getCoordFaceX(sizeX: Int) = getCoordFaceX(-1, sizeX, -1)
+    fun getCoordFaceY(sizeX: Int, sizeY: Int, rotation: Int) = y + ((if (rotation == 1 || rotation == 3) sizeX else sizeY) - 1) / 2
+    fun getCoordFaceY(sizeY: Int) = getCoordFaceY(-1, sizeY, -1)
+
     override fun copy(x: Int, y: Int, level: Int) = Tile(x, y, level)
 
     fun distanceTo(other: Tile, width: Int, height: Int) = distanceTo(Distance.getNearest(other, width, height, this))

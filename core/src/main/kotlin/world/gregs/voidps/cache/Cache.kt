@@ -1,7 +1,9 @@
 package world.gregs.voidps.cache
 
 import org.darkan.core.EnvVars
+import world.gregs.voidps.cache.definition.data.ObjectDefinition
 import world.gregs.voidps.cache.definition.data.VarBitDefinition
+import world.gregs.voidps.cache.definition.decoder.ObjectDecoder
 import world.gregs.voidps.cache.definition.decoder.VarBitDecoder
 import world.gregs.voidps.cache.secure.Huffman
 import java.util.*
@@ -58,6 +60,10 @@ interface Cache {
 
         val varbits: Array<VarBitDefinition> by lazy {
             VarBitDecoder().load(singleton)
+        }
+
+        val objects: Array<ObjectDefinition> by lazy {
+            ObjectDecoder(EnvVars.members, false).load(singleton)
         }
 
         fun get() = singleton

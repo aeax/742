@@ -10,6 +10,7 @@ object EnvVars {
 
     //server settings
     val debug: Boolean = dotenv.get("DEBUG", "false").toBooleanStrict()
+    val members: Boolean = dotenv.get("MEMBERS", "true").toBooleanStrict()
     val serverName: String = dotenv.get("SERVER_NAME", "Darkan")
     val multiLogWhitelist: String = dotenv.get("MULTILOG_WHITELIST", "localhost,127.0.0.1")
     val multiLogLimit: Int = dotenv.get("MULTILOG_LIMIT", "3").toInt()
