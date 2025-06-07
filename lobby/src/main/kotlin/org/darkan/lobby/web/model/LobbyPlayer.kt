@@ -52,9 +52,10 @@ class LobbyPlayer(val session: Session, val account: Account) {
     suspend fun completeLogin(read: ByteReadChannel) {
         println("DEBUG: Completing login for user with display name: '${account.displayName}'")
         
-        // Try creating a clean account copy to see if some field is causing issues
-        // For first-time login, displayName should be null/empty to trigger "New character name" prompt
-        val cleanAccount = Account(account.username, account.email, account.passwordHash, account.displayName)
+        // Try creating a clean account copy
+        // If display name is empty, send it as empty to potentially trigger client's built-in name selection
+        val displayNameToSend = if (account.displayName.isEmpty()) "" else account.displayName
+        val cleanAccount = Account(account.username, account.email, account.passwordHash, displayNameToSend)
         cleanAccount.rights = account.rights
         cleanAccount.banned = 0  // Force to 0
         cleanAccount.muted = 0   // Force to 0
@@ -88,39 +89,45 @@ class LobbyPlayer(val session: Session, val account: Account) {
         
         // Check if display name is empty and set appropriate variables to trigger interface
         if (account.displayName.isEmpty()) {
-            println("DEBUG: Display name is empty, trying multiple approaches to trigger name selection")
+            println("DEBUG: Display name is empty, trying to trigger display name selection without email validation")
             
-            // Approach 1: Reset lobby state first
-            vars.setVarBit(10243, 0)
+            // Avoid email validation variables and focus on display name specific ones
+            // Keep email validation as validated (varbit 10242 = 1) to avoid triggering email interface
+            // Try to find display name specific triggers
+            
+            // Reset only display name related variables
             vars.setVar(1384, 0) 
             vars.setVar(1478, 0)
-            vars.setVar(2528, 0) // Reset lobby stage
+            vars.setVar(2528, 1) // Keep lobby stage normal
             vars.syncVarsToClient()
             
-            // Small delay to let client process
             delay(100)
             
-            // Approach 2: Try different trigger values
-            vars.setVarBit(10243, 2) // Try 2 instead of 1 or 12
+            // Try different combinations focused on display name only
+            // Avoid changing varbit 10242 (email) and varbit 10243 (general lobby state)
             vars.setVar(1384, 1) // Display name selection flag
-            vars.setVar(1478, -1) // Try -1 instead of 0
-            vars.setVar(2528, 1) // Set lobby stage to 1
+            vars.setVar(1478, 1) // Try 1 instead of -1 or 0
             
-            // Try additional variables that might control name selection
-            vars.setVar(1383, 1) // Try nearby variables
-            vars.setVar(1385, 1)
-            vars.setVarBit(10242, 2) // Try the email validation varbit with different value
+            // Try other variables that might be display name specific
+            vars.setVar(1479, 1) // Try next variable
+            vars.setVar(1480, 1) // And next
+            vars.setVar(1481, 0) // Try different pattern
+            
+            // Try varc instead of var for display name
+            vars.setVarc(1384, 1)
+            vars.setVarc(1478, 1)
             
             vars.syncVarsToClient()
-            println("DEBUG: Display name selection variables set with alternative approach")
+            println("DEBUG: Display name selection variables set (avoiding email validation triggers)")
             
-            // Approach 3: Send a message to guide the user
             delay(200)
+            
+            // If automatic interface still doesn't work, provide command fallback
             session.send(org.darkan.core.net.prot.GameMessage(
                 org.darkan.core.model.ChatMessageType.GAME,
-                "Your display name is empty. Type ::setname <name> to set your display name."
+                "Display name required. Type ::setname <name> to set your display name."
             ))
-            println("DEBUG: Sent command instruction to user since automatic interface didn't trigger")
+            println("DEBUG: Sent command instruction as fallback")
         }
         
         session.readPackets(read)
