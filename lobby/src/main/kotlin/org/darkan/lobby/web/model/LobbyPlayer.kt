@@ -88,14 +88,39 @@ class LobbyPlayer(val session: Session, val account: Account) {
         
         // Check if display name is empty and set appropriate variables to trigger interface
         if (account.displayName.isEmpty()) {
-            println("DEBUG: Display name is empty, setting variables to trigger name selection")
-            // Try setting variables that might trigger the display name interface
-            // These are common variables used for display name selection in RS
-            vars.setVarBit(10243, 1) // Override previous value - this might trigger name selection
-            vars.setVar(1384, 1) // Display name selection flag
-            vars.setVar(1478, 0) // Force display name selection
+            println("DEBUG: Display name is empty, trying multiple approaches to trigger name selection")
+            
+            // Approach 1: Reset lobby state first
+            vars.setVarBit(10243, 0)
+            vars.setVar(1384, 0) 
+            vars.setVar(1478, 0)
+            vars.setVar(2528, 0) // Reset lobby stage
             vars.syncVarsToClient()
-            println("DEBUG: Display name selection variables set")
+            
+            // Small delay to let client process
+            delay(100)
+            
+            // Approach 2: Try different trigger values
+            vars.setVarBit(10243, 2) // Try 2 instead of 1 or 12
+            vars.setVar(1384, 1) // Display name selection flag
+            vars.setVar(1478, -1) // Try -1 instead of 0
+            vars.setVar(2528, 1) // Set lobby stage to 1
+            
+            // Try additional variables that might control name selection
+            vars.setVar(1383, 1) // Try nearby variables
+            vars.setVar(1385, 1)
+            vars.setVarBit(10242, 2) // Try the email validation varbit with different value
+            
+            vars.syncVarsToClient()
+            println("DEBUG: Display name selection variables set with alternative approach")
+            
+            // Approach 3: Send a message to guide the user
+            delay(200)
+            session.send(org.darkan.core.net.prot.GameMessage(
+                org.darkan.core.model.ChatMessageType.GAME,
+                "Your display name is empty. Type ::setname <name> to set your display name."
+            ))
+            println("DEBUG: Sent command instruction to user since automatic interface didn't trigger")
         }
         
         session.readPackets(read)
