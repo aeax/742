@@ -12,6 +12,7 @@ import org.darkan.core.net.prot.Ping
 import org.darkan.core.net.prot.WorldListPacket
 import org.darkan.core.net.prot.FriendlistLoaded
 import org.darkan.core.net.prot.UpdateIgnoreList
+import org.darkan.core.net.prot.OpenNameDialog
 import org.darkan.core.net.prot.handler.PacketHandlers
 import org.darkan.core.model.Account
 import org.darkan.core.model.Vars
@@ -40,45 +41,60 @@ class LobbyPlayer(val session: Session, val account: Account) {
             println("  - previousPasswords size: ${account.previousPasswords.size}")
             println("  - social.friends size: ${account.social.friends.size}")
             
-            // Try creating a clean account copy to see if some field is causing issues
-            // For first-time login, displayName should be null/empty to trigger "New character name" prompt
-            val cleanAccount = Account(account.username, account.email, account.passwordHash, "")
-            cleanAccount.rights = account.rights
-            cleanAccount.banned = 0  // Force to 0
-            cleanAccount.muted = 0   // Force to 0
-            cleanAccount.prevDisplayName = ""
-            cleanAccount.lastIp = null
+            // Check if display name is empty and trigger interface
+            if (account.displayName.isEmpty()) {
+                println("DEBUG: Display name is empty, opening selection dialog")
+                session.send(OpenNameDialog("Choose your display name:"))
+                session.readPackets(read)
+                return
+            }
             
-            println("DEBUG: Skipping LobbyLoginDetails packet to test")
-             session.send(LobbyLoginDetails(cleanAccount, worldLoginToken), noIsaac = true)
-
-            println("DEBUG: Account details - username: ${account.username}, email: ${account.email}, displayName: ${account.displayName}")
-            
-            vars.setVar(281, 1000)
-            vars.setVar(2528, 1)
-            vars.setVar(2567, 1)
-            
-            // These seem required for lobby to work
-            vars.setVarBit(10242, 1) // 2 for validating email address
-            vars.setVarBit(10243, 12)
-            
-            // Skip the email validated var to see if this is the trigger
-             vars.setVarc(1919, 1) // set email to validated
-            
-            vars.setVarBit(11162, 1)
-            
-            println("DEBUG: Vars set, syncing to client")
-            vars.syncVarsToClient()
-            
-            // Send FriendlistLoaded and UpdateIgnoreList packets to stop loading messages
-            session.send(FriendlistLoaded(0))
-            session.send(UpdateIgnoreList(0))
-            
-            session.readPackets(read)
+            // Complete normal login flow
+            completeLogin(read)
         } finally {
             session.exit()
             session.disconnect()
         }
+    }
+    
+    suspend fun completeLogin(read: ByteReadChannel) {
+        println("DEBUG: Completing login for user with display name: '${account.displayName}'")
+        
+        // Try creating a clean account copy to see if some field is causing issues
+        // For first-time login, displayName should be null/empty to trigger "New character name" prompt
+        val cleanAccount = Account(account.username, account.email, account.passwordHash, account.displayName)
+        cleanAccount.rights = account.rights
+        cleanAccount.banned = 0  // Force to 0
+        cleanAccount.muted = 0   // Force to 0
+        cleanAccount.prevDisplayName = account.prevDisplayName
+        cleanAccount.lastIp = null
+        
+        println("DEBUG: Sending LobbyLoginDetails packet")
+        session.send(LobbyLoginDetails(cleanAccount, worldLoginToken), noIsaac = true)
+
+        println("DEBUG: Account details - username: ${account.username}, email: ${account.email}, displayName: ${account.displayName}")
+        
+        vars.setVar(281, 1000)
+        vars.setVar(2528, 1)
+        vars.setVar(2567, 1)
+        
+        // These seem required for lobby to work
+        vars.setVarBit(10242, 1) // 2 for validating email address
+        vars.setVarBit(10243, 12)
+        
+        // Skip the email validated var to see if this is the trigger
+        vars.setVarc(1919, 1) // set email to validated
+        
+        vars.setVarBit(11162, 1)
+        
+        println("DEBUG: Vars set, syncing to client")
+        vars.syncVarsToClient()
+        
+        // Send FriendlistLoaded and UpdateIgnoreList packets to stop loading messages
+        session.send(FriendlistLoaded(0))
+        session.send(UpdateIgnoreList(0))
+        
+        session.readPackets(read)
     }
 
     suspend fun handleDecodedPackets() {

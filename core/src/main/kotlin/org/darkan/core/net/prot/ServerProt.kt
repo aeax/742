@@ -679,3 +679,7 @@ data class WorldLoginDetails(val dummy: Int
 ) : ServerProt
 
 data class LobbyLoginDetails(val account: Account, val worldLoginToken: String) : ServerProt
+
+// Dialog input packets
+data class OpenNameDialog(val title: String, val defaultValue: String = "") : ServerProt
+data class OpenStringDialog(val title: String, val defaultValue: String = "") : ServerProt
