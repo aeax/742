@@ -117,7 +117,7 @@ class LobbyServer(val js5: JS5Server) {
     private suspend fun init(input: ByteReadChannel, output: ByteWriteChannel, ip: String) {
         output.respond(ResponseOpcode.JS5_SYNC)
         val opcode = input.readByte().toInt()
-        if (opcode != RequestOpcode.LOBBY || pendingLogins.size > 20) return output.finish(ResponseOpcode.LOGIN_SERVER_REJECTED_SESSION)
+        if (opcode != RequestOpcode.LOBBY) return output.finish(ResponseOpcode.LOGIN_SERVER_REJECTED_SESSION)
         val size = input.readShort().toInt()
         val packet = input.readPacket(size)
         val major = packet.readInt()
@@ -171,7 +171,10 @@ class LobbyServer(val js5: JS5Server) {
             }
         }
 
-        if (!pendingLogins.add(username)) return output.finish(ResponseOpcode.LOGIN_LIMIT_EXCEEDED)
+        // Remove any existing pending login for this username first (in case of previous disconnect)
+        pendingLogins.remove(username)
+        // Add to pending logins (this should always succeed now)
+        pendingLogins.add(username)
         println("DEBUG: Looking up account with username: '$username'")
         val account = Accounts.find(username) ?: return run {
             println("DEBUG: Account not found for username: '$username'")
@@ -217,7 +220,7 @@ class LobbyServer(val js5: JS5Server) {
     }
 
     private suspend fun initAccountCreation(input: ByteReadChannel, output: ByteWriteChannel, ip: String) {
-        if (pendingLogins.size > 20) return output.finish(ResponseOpcode.LOGIN_SERVER_REJECTED_SESSION)
+        // Removed the 20 concurrent login limit
         val size = input.readShort().toInt()
         val packet = input.readPacket(size)
         val major = packet.readShort().toInt()
