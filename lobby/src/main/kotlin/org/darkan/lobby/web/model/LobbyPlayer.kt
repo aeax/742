@@ -12,11 +12,11 @@ import org.darkan.core.net.prot.Ping
 import org.darkan.core.net.prot.WorldListPacket
 import org.darkan.core.net.prot.FriendlistLoaded
 import org.darkan.core.net.prot.UpdateIgnoreList
-import org.darkan.core.net.prot.OpenNameDialog
 import org.darkan.core.net.prot.handler.PacketHandlers
 import org.darkan.core.model.Account
 import org.darkan.core.model.Vars
 import org.darkan.lobby.Lobby
+import kotlinx.coroutines.delay
 
 class LobbyPlayer(val session: Session, val account: Account) {
     val vars = Vars().setSession(session)
@@ -41,15 +41,7 @@ class LobbyPlayer(val session: Session, val account: Account) {
             println("  - previousPasswords size: ${account.previousPasswords.size}")
             println("  - social.friends size: ${account.social.friends.size}")
             
-            // Check if display name is empty and trigger interface
-            if (account.displayName.isEmpty()) {
-                println("DEBUG: Display name is empty, opening selection dialog")
-                session.send(OpenNameDialog("Choose your display name:"))
-                session.readPackets(read)
-                return
-            }
-            
-            // Complete normal login flow
+            // Always complete login flow first
             completeLogin(read)
         } finally {
             session.exit()
@@ -93,6 +85,18 @@ class LobbyPlayer(val session: Session, val account: Account) {
         // Send FriendlistLoaded and UpdateIgnoreList packets to stop loading messages
         session.send(FriendlistLoaded(0))
         session.send(UpdateIgnoreList(0))
+        
+        // Check if display name is empty and set appropriate variables to trigger interface
+        if (account.displayName.isEmpty()) {
+            println("DEBUG: Display name is empty, setting variables to trigger name selection")
+            // Try setting variables that might trigger the display name interface
+            // These are common variables used for display name selection in RS
+            vars.setVarBit(10243, 1) // Override previous value - this might trigger name selection
+            vars.setVar(1384, 1) // Display name selection flag
+            vars.setVar(1478, 0) // Force display name selection
+            vars.syncVarsToClient()
+            println("DEBUG: Display name selection variables set")
+        }
         
         session.readPackets(read)
     }

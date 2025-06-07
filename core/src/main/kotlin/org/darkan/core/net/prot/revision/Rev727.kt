@@ -1314,15 +1314,4 @@ fun register727() =
             out.writeShort(0)
             out.writeJagString("127.0.0.1")
         }
-        
-        // Dialog input packets
-        serverProt<OpenNameDialog>(opcode = 161, size = ProtSize.VarShort) { out ->
-            out.writeJagString(title)
-            out.writeJagString(defaultValue)
-        }
-        
-        serverProt<OpenStringDialog>(opcode = 162, size = ProtSize.VarShort) { out ->
-            out.writeJagString(title)
-            out.writeJagString(defaultValue)
-        }
     }

@@ -1,7 +1,6 @@
 package org.darkan.lobby.server.packet
 
 import org.darkan.core.net.prot.ResumeNameDialog
-import org.darkan.core.net.prot.OpenNameDialog
 import org.darkan.core.net.prot.GameMessage
 import org.darkan.core.model.ChatMessageType
 import org.darkan.core.mongo.collections.Accounts
@@ -22,8 +21,11 @@ class ResumeNameDialogHandler : PacketHandler<LobbyPlayer, ResumeNameDialog> {
         if (!validationResult.isValid) {
             println("DEBUG: Display name validation failed: ${validationResult.reason}")
             player.session.send(GameMessage(ChatMessageType.GAME, validationResult.reason))
-            // Reopen the dialog
-            player.session.send(OpenNameDialog("Choose your display name:", chosenName))
+            // Set variables to reopen the dialog
+            player.vars.setVarBit(10243, 1)
+            player.vars.setVar(1384, 1)
+            player.vars.setVar(1478, 0)
+            player.vars.syncVarsToClient()
             return
         }
         
@@ -31,8 +33,11 @@ class ResumeNameDialogHandler : PacketHandler<LobbyPlayer, ResumeNameDialog> {
         if (isDisplayNameTaken(chosenName)) {
             println("DEBUG: Display name '$chosenName' is already taken")
             player.session.send(GameMessage(ChatMessageType.GAME, "Display name is already taken. Please choose another."))
-            // Reopen the dialog
-            player.session.send(OpenNameDialog("Choose your display name:", ""))
+            // Set variables to reopen the dialog
+            player.vars.setVarBit(10243, 1)
+            player.vars.setVar(1384, 1)
+            player.vars.setVar(1478, 0)
+            player.vars.syncVarsToClient()
             return
         }
         
@@ -45,8 +50,13 @@ class ResumeNameDialogHandler : PacketHandler<LobbyPlayer, ResumeNameDialog> {
         // Send confirmation message
         player.session.send(GameMessage(ChatMessageType.GAME, "Display name set to: $chosenName"))
         
-        // Continue with normal lobby login flow - we need to pass the read channel
-        println("DEBUG: Display name set successfully, completing login")
+        // Reset the variables to normal state
+        player.vars.setVarBit(10243, 12) // Set back to normal lobby state
+        player.vars.setVar(1384, 0) // Clear display name selection flag
+        player.vars.setVar(1478, 1) // Mark display name as set
+        player.vars.syncVarsToClient()
+        
+        println("DEBUG: Display name set successfully, login should continue normally")
     }
     
     private data class ValidationResult(val isValid: Boolean, val reason: String = "")
