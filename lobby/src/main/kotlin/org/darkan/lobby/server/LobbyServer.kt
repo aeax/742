@@ -172,10 +172,13 @@ class LobbyServer(val js5: JS5Server) {
         }
 
         if (!pendingLogins.add(username)) return output.finish(ResponseOpcode.LOGIN_LIMIT_EXCEEDED)
+        println("DEBUG: Looking up account with username: '$username'")
         val account = Accounts.find(username) ?: return run {
+            println("DEBUG: Account not found for username: '$username'")
             pendingLogins.remove(username)
             output.finish(ResponseOpcode.INVALID_CREDENTIALS)
         }
+        println("DEBUG: Found account - username: '${account.username}', email: '${account.email}'")
         if (!account.passwordHash.isEmpty()) {
             if (!Crypto.verifyPasswordArgon2(password, account.passwordHash))
                 return run {
@@ -188,18 +191,20 @@ class LobbyServer(val js5: JS5Server) {
                     pendingLogins.remove(username)
                     output.finish(ResponseOpcode.INVALID_CREDENTIALS)
                 }
-            account.passwordHash = Crypto.hashPasswordArgon2(password)
-            account.password = null
-            Accounts.save(account)
+            // Commenting out automatic password conversion to prevent "password updated" message
+            // account.passwordHash = Crypto.hashPasswordArgon2(password)
+            // account.password = null
+            // Accounts.save(account)
         } else if (account.legacyPass != null) {
             if (!Crypto.gigaLegacyCompare(password, account.legacyPass!!))
                 return run {
                     pendingLogins.remove(username)
                     output.finish(ResponseOpcode.INVALID_CREDENTIALS)
                 }
-            account.passwordHash = Crypto.hashPasswordArgon2(password)
-            account.legacyPass = null
-            Accounts.save(account)
+            // Commenting out automatic password conversion to prevent "password updated" message
+            // account.passwordHash = Crypto.hashPasswordArgon2(password)
+            // account.legacyPass = null
+            // Accounts.save(account)
         }
 
         logInfo("Logging in $username")

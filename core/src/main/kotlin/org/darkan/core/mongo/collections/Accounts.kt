@@ -12,6 +12,7 @@ import org.darkan.core.mongo.MongoDB.database
 import org.darkan.core.net.web.AccountCreateRequest
 import org.darkan.core.net.web.ConflictException
 import org.darkan.core.model.Account
+import org.darkan.core.model.Social
 
 object Accounts {
     private val collection by lazy {
@@ -26,12 +27,33 @@ object Accounts {
 
     suspend fun find(usernameOrEmail: String): Account? {
         val formatted = usernameOrEmail.formatPlayerNameForProtocol()
-        return collection.find(
+        val account = collection.find(
             or(
                 eq(Account::username.name, formatted),
                 eq(Account::email.name, formatted)
             )
         ).firstOrNull()
+        
+        // Fix accounts with null social field
+        if (account != null && account.social == null) {
+            account.social = Social()
+            save(account)
+        }
+        
+        return account
+    }
+
+    suspend fun findByDisplayName(displayName: String): Account? {
+        val formatted = displayName.formatPlayerNameForProtocol()
+        val account = collection.find(eq(Account::displayName.name, formatted)).firstOrNull()
+        
+        // Fix accounts with null social field
+        if (account != null && account.social == null) {
+            account.social = Social()
+            save(account)
+        }
+        
+        return account
     }
 
     suspend fun exists(usernameOrEmail: String): Boolean {
@@ -56,8 +78,12 @@ object Accounts {
         val newAccount = Account(
             username = formattedEmail,
             email = formattedEmail,
-            passwordHash = Crypto.hashPasswordArgon2(password)
-        )
+            passwordHash = Crypto.hashPasswordArgon2(password),
+            displayName = "" // Empty displayName to trigger display name selection in lobby
+        ).apply {
+            // Ensure social field is properly initialized
+            social = Social()
+        }
 
         return try {
             collection.insertOne(newAccount)
@@ -82,8 +108,12 @@ object Accounts {
         val newAccount = Account(
             username = formattedUsername,
             email = formattedEmail,
-            passwordHash = Crypto.hashPasswordArgon2(req.password)
-        )
+            passwordHash = Crypto.hashPasswordArgon2(req.password),
+            displayName = "" // Empty displayName to trigger display name selection in lobby
+        ).apply {
+            // Ensure social field is properly initialized
+            social = Social()
+        }
 
         return try {
             collection.insertOne(newAccount)
