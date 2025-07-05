@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 import org.darkan.core.mongo.collections.Accounts
 import org.darkan.core.net.web.AccountCreateRequest
 import org.darkan.core.model.Account
+import org.darkan.core.model.Social
 import org.darkan.core.crypt.Crypto
 
 private val passwordFields = arrayOf(Account::passwordHash.name, Account::password.name, Account::legacyPass.name)
@@ -73,7 +74,20 @@ object AccountsController {
                     return@post call.respond(HttpStatusCode.Unauthorized)
                 
                 // Return account without password fields
-                call.respond(JsonObject(Json.encodeToJsonElement(account).jsonObject.filterNot { passwordFields.contains(it.key) }))
+                val accountJson = Json.encodeToJsonElement(account).jsonObject.toMutableMap()
+                
+                // Remove password fields
+                passwordFields.forEach { accountJson.remove(it) }
+                
+                // Ensure social field is present and not null
+                if (!accountJson.containsKey("social") || accountJson["social"] == null) {
+                    println("DEBUG: Warning - social field missing or null, adding default Social()")
+                    accountJson["social"] = Json.encodeToJsonElement(Social())
+                }
+                
+                val responseJson = JsonObject(accountJson)
+                println("DEBUG: Sending account JSON: $responseJson")
+                call.respond(responseJson)
             }
         }
         

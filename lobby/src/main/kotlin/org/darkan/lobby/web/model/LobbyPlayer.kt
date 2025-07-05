@@ -71,12 +71,27 @@ class LobbyPlayer(val session: Session, val account: Account) {
         vars.setVar(2528, 1)
         vars.setVar(2567, 1)
         
-        // These seem required for lobby to work
-        vars.setVarBit(10242, 1) // 2 for validating email address
-        vars.setVarBit(10243, 12)
-        
-        // Skip the email validated var to see if this is the trigger
+        // Set email as validated to avoid email validation interface
+        vars.setVarBit(10242, 1) // 1 = email validated
         vars.setVarc(1919, 1) // set email to validated
+        
+        // Check if display name is empty and set appropriate variables
+        if (account.displayName.isEmpty()) {
+            println("DEBUG: Display name is empty, triggering display name selection interface")
+            
+            // Set varBit 10243 to 1 to trigger display name selection
+            vars.setVarBit(10243, 1)
+            
+            // Set display name related variables
+            vars.setVar(1384, 1) // Display name selection flag
+            vars.setVar(1478, 0) // Display name not set yet
+        } else {
+            println("DEBUG: Display name exists: ${account.displayName}, entering normal lobby")
+            
+            // Normal lobby state
+            vars.setVarBit(10243, 12)
+            vars.setVar(1478, 1) // Display name has been set
+        }
         
         vars.setVarBit(11162, 1)
         
@@ -87,42 +102,9 @@ class LobbyPlayer(val session: Session, val account: Account) {
         session.send(FriendlistLoaded(0))
         session.send(UpdateIgnoreList(0))
         
-        // Check if display name is empty and set appropriate variables to trigger interface
+        // If display name is empty, send instruction for manual command
         if (account.displayName.isEmpty()) {
-            println("DEBUG: Display name is empty, trying to trigger display name selection without email validation")
-            
-            // Avoid email validation variables and focus on display name specific ones
-            // Keep email validation as validated (varbit 10242 = 1) to avoid triggering email interface
-            // Try to find display name specific triggers
-            
-            // Reset only display name related variables
-            vars.setVar(1384, 0) 
-            vars.setVar(1478, 0)
-            vars.setVar(2528, 1) // Keep lobby stage normal
-            vars.syncVarsToClient()
-            
-            delay(100)
-            
-            // Try different combinations focused on display name only
-            // Avoid changing varbit 10242 (email) and varbit 10243 (general lobby state)
-            vars.setVar(1384, 1) // Display name selection flag
-            vars.setVar(1478, 1) // Try 1 instead of -1 or 0
-            
-            // Try other variables that might be display name specific
-            vars.setVar(1479, 1) // Try next variable
-            vars.setVar(1480, 1) // And next
-            vars.setVar(1481, 0) // Try different pattern
-            
-            // Try varc instead of var for display name
-            vars.setVarc(1384, 1)
-            vars.setVarc(1478, 1)
-            
-            vars.syncVarsToClient()
-            println("DEBUG: Display name selection variables set (avoiding email validation triggers)")
-            
             delay(200)
-            
-            // If automatic interface still doesn't work, provide command fallback
             session.send(org.darkan.core.net.prot.GameMessage(
                 org.darkan.core.model.ChatMessageType.GAME,
                 "Display name required. Type ::setname <name> to set your display name."
